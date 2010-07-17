@@ -14,7 +14,7 @@ class config:
     def get_config(self):
         return self.cfg;
 
-    def __getattr__(self, name):
+    def __getitem__(self, name):
         if self.cfg.has_key(name):
             return self.cfg[name];
         else:

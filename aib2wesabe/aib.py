@@ -10,6 +10,7 @@ import mechanize;
 def _toDate(text):
     # AIB format: DD/MM/YY
     date_chunks = text.strip().split('/');
+    BeautifulSoup.findAll()
     # FIXME: proper year heuristics
     # the +2000 part is really horrible. Don't try that at home, kids.
     newdate = datetime.date(
@@ -61,7 +62,7 @@ class aib:
         # first stage of login
         br.open('https://aibinternetbanking.aib.ie/inet/roi/login.htm');
         br.select_form(name='form1');
-        br.set_value(name='regNumber', value=logindata['number']);
+        br.set_value(name='regNumber', value=logindata['regNumber']);
         br.submit();
 
         # second stage of login
