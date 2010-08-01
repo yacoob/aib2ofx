@@ -14,7 +14,7 @@ getting the data out, I was using it for some time now with Wesabe.
 
 The resulting file has "ugly" name, but there's little I can do
 without bringing Flash in, or bouncing the resulting data off a
-server. Complain `here
-<https://bugzilla.mozilla.org/show_bug.cgi?id=532230>` if you also
-think that things should work better.
+server. Complain here_ if you also think that things should work
+better.
 
+.. _here: https://bugzilla.mozilla.org/show_bug.cgi?id=532230
