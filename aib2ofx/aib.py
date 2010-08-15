@@ -10,7 +10,6 @@ import mechanize;
 def _toDate(text):
     # AIB format: DD/MM/YY
     date_chunks = text.strip().split('/');
-    BeautifulSoup.findAll()
     # FIXME: proper year heuristics
     # the +2000 part is really horrible. Don't try that at home, kids.
     newdate = datetime.date(
