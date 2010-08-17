@@ -2,7 +2,6 @@
 # coding: utf-8
 
 import cookielib, datetime, exceptions, os, re;
-import pdb;
 
 from BeautifulSoup import BeautifulSoup;
 import mechanize;
@@ -31,6 +30,8 @@ def _toValue(text):
 
 
 class aib:
+    strip_chars = '\xa0\xc2';
+
     def __init__(self, logindata, debug=False):
         self.logindata = logindata;
         self.br = mechanize.Browser();
@@ -98,7 +99,6 @@ class aib:
         # make sure we're on the top page
         br.select_form(nr=2);
         br.submit();
-        import pdb; pdb.set_trace;
 
         # parse totals
         main_page = BeautifulSoup(br.response().read(), convertEntities='html');
@@ -106,18 +106,21 @@ class aib:
             if not div.span:
                 continue;
             account = {};
-            account['code'] = div.span.renderContents();
+            account['accountId'] = div.span.renderContents();
             amount = _toValue(div.h3.renderContents().partition('\r')[0]);
             # FIXME: need better method of detecting credit cards
             if amount[0] == '-':
                 account['type'] = 'credit';
             else:
                 account['type'] = 'checking';
+
             account['available'] = amount;
+            account['currency'] = 'EUR';
+            account['bankId'] = 'AIB';
+            account['reportDate'] = datetime.date.today();
 
-            self.data[account['code']] = account;
+            self.data[account['accountId']] = account;
 
-        print self.data;
 
         # parse transactions
         br.select_form(nr=3);
@@ -127,7 +130,6 @@ class aib:
         account_dropdown = br.find_control(name='index');
         accounts_on_page = [m.get_labels()[-1].text for m in account_dropdown.get_items()];
         accounts_in_data = self.data.keys();
-        print accounts_on_page;
 
         for account in accounts_on_page:
             if not account in accounts_in_data:
@@ -159,9 +161,12 @@ class aib:
                 operation['debit'] = _toValue(cells[2].renderContents());
                 operation['credit'] = _toValue(cells[3].renderContents());
                 if self.data[account]['type'] != 'credit':
-                    operation['balance'] = _toValue(cells[4].renderContents());
+                    operation['balance'] = _toValue(cells[4].renderContents().strip(self.strip_chars));
 
                 if operation['debit'] or operation['credit']:
                     operations.append(operation);
 
-            self.data[account]['operations'] = operations;
+            acc = self.data[account]
+            if acc['type'] != 'credit':
+                acc['balance'] = operations[-1]['balance'];
+            acc['operations'] = operations;
