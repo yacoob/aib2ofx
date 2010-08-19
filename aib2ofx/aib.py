@@ -79,7 +79,7 @@ class aib:
         name = 'challengeDetails.challengeEntered';
         c = br.find_control('challengeDetails.challengeEntered');
         l = c.get_labels()[-1].text;
-        if (re.match('work phone', l)):
+        if (re.search('work phone', l)):
             br.form[name] = logindata['workNumber'];
         else:
             br.form[name] = logindata['homeNumber'];
