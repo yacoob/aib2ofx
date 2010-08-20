@@ -170,3 +170,8 @@ class aib:
             if acc['type'] != 'credit':
                 acc['balance'] = operations[-1]['balance'];
             acc['operations'] = operations;
+
+
+    def bye(self):
+        br.select_form(nr=1);
+        br.submit();
