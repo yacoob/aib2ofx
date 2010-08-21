@@ -9,8 +9,7 @@ def _toDate(d):
 
 class ofx:
     def __init__(self):
-        self.opening = """
-OFXHEADER:100
+        self.opening = """OFXHEADER:100
 DATA:OFXSGML
 VERSION:102
 SECURITY:NONE
@@ -26,56 +25,47 @@ NEWFILEUID:NONE
 <STATUS>
 <CODE>0</CODE>
 <SEVERITY>INFO</SEVERITY>
-</STATUS>
-
-<DTSERVER>%(reportDate)s</DTSERVER>
+</STATUS><DTSERVER>%(reportDate)s</DTSERVER>
 <LANGUAGE>ENG</LANGUAGE>
 </SONRS>
-</SIGNONMSGSRSV1>
-""";
+</SIGNONMSGSRSV1>""";
+
         self.headers = {
             'checking': """
 <BANKMSGSRSV1>
 <STMTTRNRS><TRNUID>1</TRNUID>
 <STATUS><CODE>0</CODE><SEVERITY>INFO</SEVERITY></STATUS>
 <STMTRS><CURDEF>%(currency)s</CURDEF>
-
 <BANKACCTFROM><BANKID>%(bankId)s</BANKID>
 <ACCTID>%(accountId)s</ACCTID>
 <ACCTTYPE>CHECKING</ACCTTYPE>
-</BANKACCTFROM>
-""",
+</BANKACCTFROM>""",
             'credit': """
 <CREDITCARDMSGSRSV1>
 <CCSTMTTRNRS><TRNUID>1</TRNUID>
 <STATUS><CODE>0</CODE><SEVERITY>INFO</SEVERITY></STATUS>
 <CCSTMTRS><CURDEF>%(currency)s</CURDEF>
-
 <CCACCTFROM>
 <ACCTID>%(accountId)s</ACCTID>
-</CCACCTFROM>
-""",
+</CCACCTFROM>""",
             };
+
         self.transactions_header = """
 <BANKTRANLIST>
 <DTSTART>%(firstDate)s</DTSTART>
-<DTEND>%(lastDate)s</DTEND>
-""";
+<DTEND>%(lastDate)s</DTEND>""";
+
         self.closing = {
-            'checking': """
-</BANKTRANLIST>
+            'checking': """</BANKTRANLIST>
 <LEDGERBAL><BALAMT>%(balance)s</BALAMT><DTASOF>%(reportDate)s</DTASOF></LEDGERBAL>
 <AVAILBAL><BALAMT>%(available)s</BALAMT><DTASOF>%(reportDate)s</DTASOF></AVAILBAL>
-</STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>
-""",
-            'credit': """
-</BANKTRANLIST>
+</STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>""",
+            'credit': """</BANKTRANLIST>
 <LEDGERBAL><BALAMT>%(available)s</BALAMT><DTASOF>%(reportDate)s</DTASOF></LEDGERBAL>
-</CCSTMTRS></CCSTMTTRNRS></CREDITCARDMSGSRSV1></OFX>
-""",
+</CCSTMTRS></CCSTMTTRNRS></CREDITCARDMSGSRSV1></OFX>""",
             };
-        self.single_transaction = """
-<STMTTRN>
+
+        self.single_transaction = """<STMTTRN>
 <TRNTYPE>%(type)s</TRNTYPE>
 <DTPOSTED>%(timestamp)s</DTPOSTED>
 <TRNAMT>%(amount)s</TRNAMT>
@@ -85,7 +75,7 @@ NEWFILEUID:NONE
 """;
 
 
-    def parse(self, input):
+    def prettyprint(self, input):
         ofx = '';
         data = {};
 

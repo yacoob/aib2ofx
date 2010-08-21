@@ -117,7 +117,7 @@ class aib:
             account['available'] = amount;
             account['currency'] = 'EUR';
             account['bankId'] = 'AIB';
-            account['reportDate'] = datetime.date.today();
+            account['reportDate'] = datetime.datetime.now();
 
             self.data[account['accountId']] = account;
 
@@ -171,7 +171,10 @@ class aib:
                 acc['balance'] = operations[-1]['balance'];
             acc['operations'] = operations;
 
+    def getdata(self):
+        return self.data;
 
     def bye(self):
+        br = self.br;
         br.select_form(nr=1);
         br.submit();
