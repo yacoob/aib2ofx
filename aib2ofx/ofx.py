@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from hashlib import sha256;
+from hashlib import sha256
 
 def _toDate(d):
-    return d.strftime('%Y%m%d%H%M%S');
+    return d.strftime('%Y%m%d%H%M%S')
 
 
 class ofx:
@@ -28,7 +28,7 @@ NEWFILEUID:NONE
 </STATUS><DTSERVER>%(reportDate)s</DTSERVER>
 <LANGUAGE>ENG</LANGUAGE>
 </SONRS>
-</SIGNONMSGSRSV1>""";
+</SIGNONMSGSRSV1>"""
 
         self.headers = {
             'checking': """
@@ -48,12 +48,12 @@ NEWFILEUID:NONE
 <CCACCTFROM>
 <ACCTID>%(accountId)s</ACCTID>
 </CCACCTFROM>""",
-            };
+            }
 
         self.transactions_header = """
 <BANKTRANLIST>
 <DTSTART>%(firstDate)s</DTSTART>
-<DTEND>%(lastDate)s</DTEND>""";
+<DTEND>%(lastDate)s</DTEND>"""
 
         self.closing = {
             'checking': """</BANKTRANLIST>
@@ -63,7 +63,7 @@ NEWFILEUID:NONE
             'credit': """</BANKTRANLIST>
 <LEDGERBAL><BALAMT>%(available)s</BALAMT><DTASOF>%(reportDate)s</DTASOF></LEDGERBAL>
 </CCSTMTRS></CCSTMTTRNRS></CREDITCARDMSGSRSV1></OFX>""",
-            };
+            }
 
         self.single_transaction = """<STMTTRN>
 <TRNTYPE>%(type)s</TRNTYPE>
@@ -72,42 +72,42 @@ NEWFILEUID:NONE
 <FITID>%(tid)s</FITID>
 <NAME>%(description)s</NAME>
 </STMTTRN>
-""";
+"""
 
 
     def prettyprint(self, input):
-        ofx = '';
-        data = {};
+        ofx = ''
+        data = {}
 
         # Move obvious things to data.
-        data = input.copy();
+        data = input.copy()
 
         # Calculate rest of necessary fields.
-        data['reportDate'] = _toDate(data['reportDate']);
-        data['firstDate'] = _toDate(data['operations'][0]['timestamp']);
-        data['lastDate'] = _toDate(data['operations'][-1]['timestamp']);
+        data['reportDate'] = _toDate(data['reportDate'])
+        data['firstDate'] = _toDate(data['operations'][0]['timestamp'])
+        data['lastDate'] = _toDate(data['operations'][-1]['timestamp'])
 
-        transactions = '';
+        transactions = ''
         for transaction in data['operations']:
-            t = transaction.copy();
+            t = transaction.copy()
 
             if t['credit']:
-                t['type'] = 'CREDIT';
-                t['amount'] = t['credit'];
+                t['type'] = 'CREDIT'
+                t['amount'] = t['credit']
             else:
-                t['type'] = 'DEBIT';
-                t['amount'] = '-%s' % t['debit'];
+                t['type'] = 'DEBIT'
+                t['amount'] = '-%s' % t['debit']
 
-            t['timestamp'] = _toDate(t['timestamp']);
-            t['tid'] = sha256(t['timestamp'] + t['amount'] + t['description']).hexdigest();
+            t['timestamp'] = _toDate(t['timestamp'])
+            t['tid'] = sha256(t['timestamp'] + t['amount'] + t['description']).hexdigest()
 
-            transactions = '\n'.join((transactions, self.single_transaction % t));
+            transactions = '\n'.join((transactions, self.single_transaction % t))
 
         ofx = '\n'.join ((self.opening,
                          self.headers[data['type']],
                          self.transactions_header,
                          transactions,
-                         self.closing[data['type']]));
-        ofx = ofx % data;
+                         self.closing[data['type']]))
+        ofx = ofx % data
 
-        return ofx;
+        return ofx
