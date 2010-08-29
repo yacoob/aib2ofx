@@ -3,7 +3,7 @@
 
 import optparse, re
 
-import aib, cfg, ofx
+from aib2ofx_lib import aib, cfg, ofx
 
 
 def getOptions():

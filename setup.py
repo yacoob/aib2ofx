@@ -11,6 +11,6 @@ setup(name='aib2ofx',
 
       requires=['BeautifulSoup', 'mechanize'],
 
-      packages=['aib2ofx'],
-      scripts=['aib2ofx/aib2ofx.py'],
+      packages=['aib2ofx_lib'],
+      scripts=['aib2ofx'],
      );
