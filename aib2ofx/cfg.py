@@ -3,8 +3,6 @@
 
 import json, os
 
-import mechanize
-
 class config:
     def __init__(self, config_filename='~/.aib-sucker'):
         fp = open(os.path.expanduser(config_filename))

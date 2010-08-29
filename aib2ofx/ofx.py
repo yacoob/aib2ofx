@@ -3,6 +3,7 @@
 
 from hashlib import sha256
 
+
 def _toDate(d):
     return d.strftime('%Y%m%d%H%M%S')
 
