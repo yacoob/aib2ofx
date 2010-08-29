@@ -88,26 +88,27 @@ NEWFILEUID:NONE
         data['firstDate'] = _toDate(data['operations'][0]['timestamp'])
         data['lastDate'] = _toDate(data['operations'][-1]['timestamp'])
 
-        transactions = ''
+        # Turn set of transactions into a lengthy string.
+        transactions = []
         for transaction in data['operations']:
             t = transaction.copy()
-
             if t['credit']:
                 t['type'] = 'CREDIT'
                 t['amount'] = t['credit']
             else:
                 t['type'] = 'DEBIT'
                 t['amount'] = '-%s' % t['debit']
-
             t['timestamp'] = _toDate(t['timestamp'])
             t['tid'] = sha256(t['timestamp'] + t['amount'] + t['description']).hexdigest()
+            transactions.append(self.single_transaction % t)
 
-            transactions = '\n'.join((transactions, self.single_transaction % t))
+        list_of_transactions = '\n'.join(transactions)
 
+        # Wrap up and return resulting OFX.
         ofx = '\n'.join ((self.opening,
                          self.headers[data['type']],
                          self.transactions_header,
-                         transactions,
+                         list_of_transactions,
                          self.closing[data['type']]))
         ofx = ofx % data
 
