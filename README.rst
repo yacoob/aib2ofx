@@ -5,6 +5,7 @@ aib2ofx
 
 Installation
 --------------
+* Get ``setuptools`` if you don't have it already.
 * ``umask 022``
 * ``python setup.py build``
 * ``sudo python setup.py install``
