@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import cookielib, datetime, exceptions, os, re
+import cookielib, datetime, exceptions, logging, os, re, tempfile
 
 from BeautifulSoup import BeautifulSoup
 import mechanize
@@ -32,9 +32,11 @@ def _toValue(text):
 class aib:
     strip_chars = '\xa0\xc2'
 
-    def __init__(self, logindata, debug=False):
+    def __init__(self, logindata, chatter):
         self.logindata = logindata
         self.br = mechanize.Browser()
+        self.quiet = chatter['quiet']
+        self.debug = chatter['debug']
         br = self.br
         cj = cookielib.LWPCookieJar()
         br.set_cookiejar(cj)
@@ -46,16 +48,25 @@ class aib:
         br.set_handle_robots(False)
         br.set_handle_refresh(mechanize._http.HTTPRefreshProcessor(), max_time=1)
 
-        br.set_debug_http(debug)
-        br.set_debug_redirects(debug)
-        br.set_debug_responses(debug)
+        if self.debug:
+            # make a directory for debugging output
+            self.debugdir = tempfile.mkdtemp(prefix='aib2ofx_')
+            print 'WARNING: putting *sensitive* debug data in %s' % self.debugdir
+            mechanize_logger = logging.getLogger("mechanize")
+            mechanize_logger.addHandler(
+                logging.FileHandler(self.debugdir + '/mechanize.log', 'w'))
+            mechanize_logger.setLevel(logging.DEBUG)
+
+            #br.set_debug_http(True)
+            br.set_debug_redirects(True)
+            br.set_debug_responses(True)
 
         br.addheaders = [('User-agent', 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1')]
         self.login_done = False
         self.data = {}
 
 
-    def login(self):
+    def login(self, quiet=False):
         br = self.br
         logindata = self.logindata
 
@@ -89,7 +100,7 @@ class aib:
         self.login_done = True
 
 
-    def scrape(self):
+    def scrape(self, quiet=False):
         if not self.login_done:
             self.login()
 
@@ -174,7 +185,7 @@ class aib:
     def getdata(self):
         return self.data
 
-    def bye(self):
+    def bye(self, quiet=False):
         br = self.br
         br.select_form(nr=1)
         br.submit()
