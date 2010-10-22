@@ -9,7 +9,7 @@ setup(name='aib2ofx',
       author_email='yacoob@gmail.com',
       url='http://github.com/yacoob/aib2ofx',
 
-      install_requires=['BeautifulSoup', 'mechanize'],
+      install_requires=['BeautifulSoup==3.0.8.1', 'mechanize'],
 
       packages=['aib2ofx_lib'],
       scripts=['aib2ofx'],
