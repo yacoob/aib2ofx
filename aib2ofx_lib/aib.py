@@ -29,6 +29,22 @@ def _toValue(text):
         return tmp
 
 
+class CleansingFormatter(logging.Formatter):
+    def __init__(self, fmt=None, datefmt=None):
+        self.amount_re = re.compile('(?:\d+,)*\d+\.\d+(?: DR)?')
+        self.date_re = re.compile('\d\d/\d\d/\d\d')
+        self.description_re = re.compile('<td>(?!dd/mm/yy).+</td>')
+        logging.Formatter.__init__(self, fmt, datefmt)
+
+    def format(self, record):
+        tmp = record.msg
+        tmp = self.amount_re.sub('X.XX', tmp)
+        tmp = self.date_re.sub('dd/mm/yy', tmp)
+        tmp = self.description_re.sub('<td>dummy description</td>', tmp)
+        record.msg = tmp
+        return logging.Formatter.format(self, record)
+
+
 class aib:
     strip_chars = '\xa0\xc2'
 
@@ -52,12 +68,13 @@ class aib:
             # make a directory for debugging output
             self.debugdir = tempfile.mkdtemp(prefix='aib2ofx_')
             print 'WARNING: putting *sensitive* debug data in %s' % self.debugdir
-            mechanize_logger = logging.getLogger("mechanize")
-            mechanize_logger.addHandler(
-                logging.FileHandler(self.debugdir + '/mechanize.log', 'w'))
-            mechanize_logger.setLevel(logging.DEBUG)
+            self.logger = logging.getLogger("mechanize")
+            fh = logging.FileHandler(self.debugdir + '/mechanize.log', 'w')
+            fm = CleansingFormatter('%(asctime)s\n%(message)s')
+            fh.setFormatter(fm)
+            self.logger.addHandler(fh)
+            self.logger.setLevel(logging.DEBUG)
 
-            #br.set_debug_http(True)
             br.set_debug_redirects(True)
             br.set_debug_responses(True)
 
@@ -71,9 +88,11 @@ class aib:
         logindata = self.logindata
 
         # first stage of login
+        self.logger.debug('Requesting first login page.')
         br.open('https://aibinternetbanking.aib.ie/inet/roi/login.htm')
         br.select_form(name='form1')
         br.set_value(name='regNumber', value=logindata['regNumber'])
+        self.logger.debug('Submitting first login form.')
         br.submit()
 
         # second stage of login
@@ -85,18 +104,24 @@ class aib:
             l = c.get_labels()[-1].text
             requested_digit = int(l[-1]) - 1
             pin_digit = logindata['pin'][requested_digit]
+            self.logger.debug('Using digit number %d of PIN.' % (requested_digit + 1))
             br.form[name] = pin_digit
 
         name = 'challengeDetails.challengeEntered'
         c = br.find_control('challengeDetails.challengeEntered')
         l = c.get_labels()[-1].text
         if (re.search('work phone', l)):
+            self.logger.debug('Using work number')
             br.form[name] = logindata['workNumber']
         else:
+            self.logger.debug('Using home number')
             br.form[name] = logindata['homeNumber']
+
+        self.logger.debug('Submitting second login form.')
         br.submit()
 
         # mark login as done
+        # FIXME: should really check whether we succesfully logged in here
         self.login_done = True
 
 
@@ -108,6 +133,7 @@ class aib:
         self.data = {}
 
         # make sure we're on the top page
+        self.logger.debug('Requesting main page with account listing to grab totals.')
         br.select_form(nr=2)
         br.submit()
 
@@ -134,6 +160,7 @@ class aib:
 
 
         # parse transactions
+        self.logger.debug('Switching to transaction listing.')
         br.select_form(nr=3)
         br.submit()
 
@@ -144,10 +171,11 @@ class aib:
 
         for account in accounts_on_page:
             if not account in accounts_in_data:
-                print "skipping dubious account %s" % account
+                self.logger.debug('skipping dubious account %s' % account)
                 continue
 
             # get account's page
+            self.logger.debug('Requesting transactions for %s.' % account)
             br.select_form(nr=11)
             account_dropdown = br.find_control(name='index')
             account_dropdown.set_value_by_label([account])
@@ -186,6 +214,8 @@ class aib:
         return self.data
 
     def bye(self, quiet=False):
+        self.logger.debug('Logging out.')
         br = self.br
         br.select_form(nr=1)
         br.submit()
+        # FIXME: check whether we really logged out here
