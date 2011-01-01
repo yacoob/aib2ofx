@@ -77,6 +77,9 @@ class aib:
 
             br.set_debug_redirects(True)
             br.set_debug_responses(True)
+        else:
+            logging.disable(logging.DEBUG)
+            self.logger = logging.getLogger(None)
 
         br.addheaders = [('User-agent', 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1')]
         self.login_done = False
