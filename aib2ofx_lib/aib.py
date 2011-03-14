@@ -47,6 +47,7 @@ class CleansingFormatter(logging.Formatter):
 
 class aib:
     strip_chars = '\xa0\xc2'
+    new_operations = ['Interest Rate']
 
     def __init__(self, logindata, chatter):
         self.logindata = logindata
@@ -188,6 +189,7 @@ class aib:
             statement_page = BeautifulSoup(br.response().read(), convertEntities='html')
             table = statement_page.find('table', 'aibtableStyle01')
             operations = []
+            last_operation = None
             # single row consists of following <td>s:
             # Checking:
             # Date, Description, Debit, Credit, Balance
@@ -207,6 +209,15 @@ class aib:
 
                 if operation['debit'] or operation['credit']:
                     operations.append(operation)
+                    last_operation = operation
+                elif (last_operation and
+                      operation['description'] not in self.new_operations and
+                      operation['timestamp'] == last_operation['timestamp']):
+                    last_operation['description'] += ' ' + operation['description']
+                    if operation.get('balance') and not last_operation.get('balance'):
+                      last_operation['balance'] = operation['balance']
+                else:
+                    last_operation = operation
 
             acc = self.data[account]
             if acc['type'] != 'credit':
