@@ -99,7 +99,7 @@ NEWFILEUID:NONE
                 t['type'] = 'DEBIT'
                 t['amount'] = '-%s' % t['debit']
             t['timestamp'] = _toDate(t['timestamp'])
-            t['tid'] = sha256(t['timestamp'] + t['amount'] + t['description']).hexdigest()
+            t['tid'] = sha256(t['timestamp'].encode("utf-8") + t['amount'].encode("utf-8") + t['description'].encode("utf-8")).hexdigest()
             transactions.append(self.single_transaction % t)
 
         list_of_transactions = '\n'.join(transactions)

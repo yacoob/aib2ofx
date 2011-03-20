@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import optparse, re
+import optparse, re, codecs
 
 from aib2ofx_lib import aib, cfg, ofx
 
@@ -34,13 +34,16 @@ def getData(user, config, output_dir, formatter):
         name = re.sub(cleanup_re,
                       '_',
                       account['accountId']).lower()
-        f = open(
-            '%s/%s_%s.ofx' % (output_dir, user, name),
-            'w'
-        )
-        f.write(formatter.prettyprint(account))
-        f.close
+        writeFile(account, output_dir, user, name, formatter)
 
+def writeFile(account_data, output_dir, user, accountId, formatter):
+        f = codecs.open(
+            '%s/%s_%s.ofx' % (output_dir, user, accountId),
+            'w'
+            'utf-8'
+        )
+        f.write(formatter.prettyprint(account_data).encode('utf-8'))
+        f.close
 
 def main():
     # Parse command line options.
