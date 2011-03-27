@@ -187,31 +187,39 @@ class aib:
             # mangle the data
             statement_page = BeautifulSoup(br.response().read(), convertEntities='html')
             table = statement_page.find('table', 'aibtableStyle01')
-            operations = []
-            # single row consists of following <td>s:
-            # Checking:
-            # Date, Description, Debit, Credit, Balance
-            # CCard:
-            # Date, Description, Debit, Credit
-            for row in table.findAll('tr'):
-                if not row.td:
-                    continue
-                cells = row.findAll('td')
-                operation = {}
-                operation['timestamp'] = _toDate(cells[0].renderContents())
-                operation['description'] = cells[1].renderContents()
-                operation['debit'] = _toValue(cells[2].renderContents())
-                operation['credit'] = _toValue(cells[3].renderContents())
-                if self.data[account]['type'] != 'credit':
-                    operation['balance'] = _toValue(cells[4].renderContents().strip(self.strip_chars))
-
-                if operation['debit'] or operation['credit']:
-                    operations.append(operation)
-
             acc = self.data[account]
-            if acc['type'] != 'credit':
-                acc['balance'] = operations[-1]['balance']
-            acc['operations'] = operations
+            operations = []
+
+            if table:
+                # single row consists of following <td>s:
+                # Checking:
+                # Date, Description, Debit, Credit, Balance
+                # CCard:
+                # Date, Description, Debit, Credit
+                for row in table.findAll('tr'):
+                    if not row.td:
+                        continue
+                    cells = row.findAll('td')
+                    operation = {}
+                    operation['timestamp'] = _toDate(cells[0].renderContents())
+                    operation['description'] = cells[1].renderContents()
+                    operation['debit'] = _toValue(cells[2].renderContents())
+                    operation['credit'] = _toValue(cells[3].renderContents())
+                    if self.data[account]['type'] != 'credit':
+                        operation['balance'] = _toValue(cells[4].renderContents().strip(self.strip_chars))
+
+                    if operation['debit'] or operation['credit']:
+                        operations.append(operation)
+
+                if acc['type'] != 'credit':
+                    acc['balance'] = operations[-1]['balance']
+                acc['operations'] = operations
+
+            else:
+                self.logger.debug('removing empty account %s from list' % account)
+                del self.data[account]
+                continue
+
 
     def getdata(self):
         return self.data
