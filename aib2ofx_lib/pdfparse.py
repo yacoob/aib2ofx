@@ -82,7 +82,7 @@ class PdfParse:
                 operation['debit'] = elm.string
                 operations.append(operation)
                 operation=operation_tmpl.copy()
-            if(right_pos==self.credit_rpos):
+            if(abs(right_pos-self.credit_rpos)<2):
                 operation['credit'] = elm.string
                 operations.append(operation)
                 operation=operation_tmpl.copy()
