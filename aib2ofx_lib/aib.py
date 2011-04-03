@@ -50,6 +50,7 @@ class aib:
 
     def __init__(self, logindata, chatter):
         self.logindata = logindata
+        self.cc_re = re.compile(logindata.get('ccards', '^$'))
         self.br = mechanize.Browser()
         self.quiet = chatter['quiet']
         self.debug = chatter['debug']
@@ -149,7 +150,7 @@ class aib:
             account['accountId'] = div.span.renderContents()
             amount = _toValue(div.h3.renderContents().partition('\r')[0])
             # FIXME: need better method of detecting credit cards
-            if amount[0] == '-':
+            if amount[0] == '-' or self.cc_re.match(account['accountId']):
                 account['type'] = 'credit'
             else:
                 account['type'] = 'checking'
