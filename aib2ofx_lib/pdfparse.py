@@ -62,29 +62,29 @@ class PdfParse:
             right_pos=int(elm['left'])+int(elm['width'])
             left_pos=int(elm['left'])
 
-            accountIdMatch = re.search(self.accountNoRegEx, elm.text)
+            accountIdMatch = re.search(self.accountNoRegEx, elm.string)
             if(accountIdMatch):
                 accountId=accountIdMatch.group(0)
 
             if(left_pos<=70):
-                dateMatch = re.search(self.dateRegEx,elm.text)
+                dateMatch = re.search(self.dateRegEx,elm.string)
                 if(dateMatch):
                     date = dateMatch.group(0)
-                    operation['description'] = elm.text.replace(date,'').lstrip()
+                    operation['description'] = elm.string.replace(date,'').lstrip()
                     current_ts = datetime.strptime(date, '%d %b %Y')
             if(right_pos==self.debit_rpos):
-                operation['debit'] = elm.text
+                operation['debit'] = elm.string
                 operations.append(operation)
                 operation=operation_tmpl.copy()
             if(right_pos==self.credit_rpos):
-                operation['credit'] = elm.text
+                operation['credit'] = elm.string
                 operations.append(operation)
                 operation=operation_tmpl.copy()
             if(left_pos==self.desc_lpos):
-                operation['description'] = elm.text
+                operation['description'] = elm.string
 
             if(right_pos==self.balance_rpos and len(operations)):
-                operations[-1]['balance'] = elm.text
+                operations[-1]['balance'] = elm.string
 
             operation['timestamp'] = current_ts
 
