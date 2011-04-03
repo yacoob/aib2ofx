@@ -92,7 +92,7 @@ NEWFILEUID:NONE
         transactions = []
         for transaction in data['operations']:
             t = transaction.copy()
-            if t['credit']:
+            if not t['debit']:
                 t['type'] = 'CREDIT'
                 t['amount'] = t['credit']
             else:
