@@ -11,6 +11,8 @@ class PdfParse:
         self.credit_rpos=363
         self.balance_rpos=430
         self.desc_lpos=79
+        self.items_top=300
+        self.items_bottom=750
 
         self.dateRegEx = '\d+\s\w+\s\d{4,4}'
         self.accountNoRegEx = '\d{5,5}-\d{3,3}'
@@ -61,10 +63,14 @@ class PdfParse:
         for elm in soup.findAll('text'):
             right_pos=int(elm['left'])+int(elm['width'])
             left_pos=int(elm['left'])
+            top_pos=int(elm['top'])
 
             accountIdMatch = re.search(self.accountNoRegEx, elm.string)
             if(accountIdMatch):
                 accountId=accountIdMatch.group(0)
+
+            if(top_pos<self.items_top or top_pos>self.items_bottom):
+              continue
 
             if(left_pos<=70):
                 dateMatch = re.search(self.dateRegEx,elm.string)
