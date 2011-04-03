@@ -6,6 +6,8 @@ import re, os, subprocess, fnmatch, codecs
 from datetime import datetime
 
 class PdfParse:
+    new_operations = ['BALANCE FORWARD', 'Interest Rate', 'New Interest Rate']
+
     def __init__(self, directory):
         self.debit_rpos=307
         self.credit_rpos=363
@@ -55,6 +57,7 @@ class PdfParse:
 
         operations=[]
         current_ts = ''
+        descriptions=[]
         accountId = ''
         #Template for an operation
         operation_tmpl = dict(debit='',credit='',balance='',description='')
@@ -76,22 +79,34 @@ class PdfParse:
                 dateMatch = re.search(self.dateRegEx,elm.string)
                 if(dateMatch):
                     date = dateMatch.group(0)
-                    operation['description'] = elm.string.replace(date,'').lstrip()
                     current_ts = datetime.strptime(date, '%d %b %Y')
+                    elm.string = elm.string.replace(date,'').lstrip()
+                    left_pos = self.desc_lpos
+
+
+            commit_operation=False
             if(right_pos==self.debit_rpos):
                 operation['debit'] = elm.string
-                operations.append(operation)
-                operation=operation_tmpl.copy()
+                commit_operation=True
             if(abs(right_pos-self.credit_rpos)<2):
                 operation['credit'] = elm.string
+                commit_operation=True
+            if(left_pos==self.desc_lpos):
+                descriptions.append(elm.string)
+                if(elm.string in self.new_operations):
+                    commit_operation=True
+
+            if(commit_operation):
+                if len(operations):
+                    operations[-1]['description'] += ' ' + ' '.join(descriptions[:-1])
+                operation['description'] = descriptions[-1]
+                operation['timestamp'] = current_ts
                 operations.append(operation)
                 operation=operation_tmpl.copy()
-            if(left_pos==self.desc_lpos):
-                operation['description'] = elm.string
+                descriptions=[]
 
             if(right_pos==self.balance_rpos and len(operations)):
                 operations[-1]['balance'] = elm.string
 
-            operation['timestamp'] = current_ts
 
         return {'accountId':accountId, 'operations':operations}
