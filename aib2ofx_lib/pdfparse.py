@@ -21,10 +21,11 @@ class PdfParse:
         data=[]
         for f in files:
             if fnmatch.fnmatch(f, '*.pdf'):
-                fullname = self.directory+"/"+f
-                subprocess.call(['pdftohtml', '-xml', fullname])
-                fullname = fullname.rstrip('.pdf')+".xml"
-                data.append(self._get_data_for_file(fullname))
+                fullpdfname = self.directory+"/"+f
+                fullxmlname = fullpdfname.rstrip('.pdf')+".xml"
+                if not os.path.exists(fullxmlname):
+                    subprocess.call(['pdftohtml', '-xml', fullpdfname])
+                data.append(self._get_data_for_file(fullxmlname))
         return data
 
     def _get_data_for_file(self, file_name):
