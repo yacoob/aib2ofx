@@ -6,18 +6,47 @@ import re, os, subprocess, fnmatch, codecs
 from datetime import datetime
 
 class PdfParse:
-    new_operations = ['BALANCE FORWARD', 'Interest Rate', 'New Interest Rate']
+    credit_card_marker = 'Account Statement - '
+
+    class CurrentAccountConfiguration(object):
+        type = 'checking'
+        new_operations = ['BALANCE FORWARD', 'Interest Rate', 'New Interest Rate']
+        blacklisted = []
+        end_of_operations = []
+
+        items_top=300
+        items_bottom=750
+
+        date_rpos=70
+        desc_lpos=79
+        debit_rpos=307
+        credit_rpos=363
+        balance_rpos=430
+
+        dateRegEx = '\d+\s\w+\s\d{4,4}'
+        dateFormat = '%d %b %Y'
+        accountNoRegEx = '\d{5,5}-\d{3,3}'
+
+    class CreditAccountConfiguration(object):
+        type = 'credit'
+        new_operations = []
+        blacklisted = ['Amount', 'Details and', 'Reference Number']
+        end_of_operations = ['Total Transactions for this period']
+
+        items_top=250
+        items_bottom=800
+
+        date_rpos=70
+        desc_lpos=119
+        debit_rpos=404
+        credit_rpos=414
+        balance_rpos=430
+
+        dateRegEx = '\d+\s\w+'
+        dateFormat = '%d %b'
+        accountNoRegEx = '\d{4} \d{2}\*{2} \*{4} \d{4}'
 
     def __init__(self, directory):
-        self.debit_rpos=307
-        self.credit_rpos=363
-        self.balance_rpos=430
-        self.desc_lpos=79
-        self.items_top=300
-        self.items_bottom=750
-
-        self.dateRegEx = '\d+\s\w+\s\d{4,4}'
-        self.accountNoRegEx = '\d{5,5}-\d{3,3}'
         self.directory = os.path.abspath(directory)
 
     def getData(self):
@@ -33,7 +62,8 @@ class PdfParse:
         return data
 
     def _get_data_for_file(self, file_name):
-        data =  {'type':'checking',
+        data =  {'type':'',
+                'accountId':'',
                 'available': '',
                 'balance' : '',
                 'bankId': 'AIB',
@@ -42,6 +72,7 @@ class PdfParse:
 
         statement = self._parse_xml(file_name)
         data['accountId']=statement['accountId']
+        data['type']=statement['type']
 
         operations = statement['operations']
         data['operations']=operations
@@ -55,6 +86,8 @@ class PdfParse:
         xml = file.read()
         soup = BeautifulStoneSoup(xml);
 
+        conf = self.CurrentAccountConfiguration
+        statement_date = None
         operations=[]
         current_ts = ''
         descriptions=[]
@@ -63,41 +96,57 @@ class PdfParse:
         operation_tmpl = dict(debit='',credit='',balance='',description='')
         operation=operation_tmpl.copy()
 
-        for elm in soup.findAll('text'):
+        def position(elm):
+            return (elm.findParent('page')['number'], int(elm['top']), int(elm['left']))
+
+        for elm in sorted(soup.findAll('text'), key=position):
             right_pos=int(elm['left'])+int(elm['width'])
             left_pos=int(elm['left'])
             top_pos=int(elm['top'])
 
-            accountIdMatch = re.search(self.accountNoRegEx, elm.string)
+            if(not statement_date and elm.string.startswith(self.credit_card_marker)):
+                conf = self.CreditAccountConfiguration
+                month_year = ' '.join(elm.string.split(' ')[-2:])
+                statement_date = datetime.strptime(month_year, '%B, %Y')
+
+            if(elm.string in conf.end_of_operations):
+                break
+            if(elm.string in conf.blacklisted):
+                continue
+
+            accountIdMatch = re.search(conf.accountNoRegEx, elm.string)
             if(accountIdMatch):
-                accountId=accountIdMatch.group(0)
+                accountId=accountIdMatch.group(0).replace('*','x').replace(' ','-')
 
-            if(top_pos<self.items_top or top_pos>self.items_bottom):
-              continue
+            if(top_pos<conf.items_top or top_pos>conf.items_bottom):
+                continue
 
-            if(left_pos<=70):
-                dateMatch = re.search(self.dateRegEx,elm.string)
+            if(left_pos<=conf.date_rpos):
+                dateMatch = re.match(conf.dateRegEx,elm.string)
                 if(dateMatch):
                     date = dateMatch.group(0)
-                    current_ts = datetime.strptime(date, '%d %b %Y')
-                    elm.string = elm.string.replace(date,'').lstrip()
-                    left_pos = self.desc_lpos
-
+                    current_ts = datetime.strptime(date, conf.dateFormat)
+                    if(statement_date):
+                        current_ts = (current_ts.replace(statement_date.year -
+                            (1 if statement_date.month < 2 and current_ts.month > 10 else 0)))
+                    else:
+                        elm.string = elm.string.replace(date,'').lstrip()
+                        left_pos = conf.desc_lpos
 
             commit_operation=False
-            if(right_pos==self.debit_rpos):
-                operation['debit'] = elm.string
+            if(abs(right_pos-conf.debit_rpos)<2):
+                operation['debit'] = elm.string.replace(',','')
                 commit_operation=True
-            if(abs(right_pos-self.credit_rpos)<2):
-                operation['credit'] = elm.string
+            if(abs(right_pos-conf.credit_rpos)<2):
+                operation['credit'] = elm.string.replace(',','')
                 commit_operation=True
-            if(left_pos==self.desc_lpos):
+            if(left_pos==conf.desc_lpos):
                 descriptions.append(elm.string)
-                if(elm.string in self.new_operations):
+                if(elm.string in conf.new_operations):
                     commit_operation=True
 
             if(commit_operation):
-                if len(operations):
+                if(len(operations) and descriptions[:-1]):
                     operations[-1]['description'] += ' ' + ' '.join(descriptions[:-1])
                 operation['description'] = descriptions[-1]
                 operation['timestamp'] = current_ts
@@ -105,8 +154,10 @@ class PdfParse:
                 operation=operation_tmpl.copy()
                 descriptions=[]
 
-            if(right_pos==self.balance_rpos and len(operations)):
+            if(right_pos==conf.balance_rpos and len(operations)):
                 operations[-1]['balance'] = elm.string
 
+        if(len(operations) and descriptions):
+            operations[-1]['description'] += ' ' + ' '.join(descriptions)
 
-        return {'accountId':accountId, 'operations':operations}
+        return {'type':conf.type, 'accountId':accountId, 'operations':operations}
