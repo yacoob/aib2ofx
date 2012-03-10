@@ -5,9 +5,20 @@ aib2ofx
 
 Installation
 --------------
-* ``umask 022``
-* ``python setup.py build``
-* ``sudo python setup.py install``
+Install required Python modules::
+
+* BeautifulSoup
+* mechanize
+
+On Ubuntu and Debian systems, run::
+
+    sudo aptitude install python-beautifulsoup python-mechanize
+
+Execute commands::
+
+    umask 022
+    python setup.py build
+    sudo python setup.py install
 
 If that has completed successfully, you should find ``aib2ofx``
 command in your Python's ``bin`` dir.
