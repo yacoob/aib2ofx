@@ -5,10 +5,20 @@ Also supports conversion of AIB e-statements.
 
 ## Installation
 
-* Get [setuptools](http://pypi.python.org/pypi/setuptools) if you don't have it already.
-* `umask 022`
-* `python setup.py build`
-* `sudo python setup.py install`
+Install required Python modules:
+
+* BeautifulSoup
+* mechanize
+
+On Ubuntu and Debian systems, run:
+
+    sudo aptitude install python-beautifulsoup python-mechanize
+
+Execute commands:
+
+    umask 022
+    python setup.py build
+    sudo python setup.py install
 
 If that has completed successfully, you should find `aib2ofx` command
 in your Python's `bin` dir.
@@ -16,8 +26,13 @@ in your Python's `bin` dir.
 
 ## How to use
 
-Create a `~/.aib-sucker` file, with AIB login details. It has a JSON
-format, single object with one key per AIB login you want to use.
+Create a `~/.aib-sucker` file, with AIB login details.
+Set the permission bits to 0600 to prevent other system users from reading it.
+
+    touch ~/.aib-sucker
+    chmod 0600 ~/.aib-sucker
+
+It has a JSON format, single object with one key per AIB login you want to use.
 
     {
         "bradmajors": {
@@ -60,9 +75,7 @@ will download data for all accounts for all logins.
         }
     }
 
-Note that there's no comma after the last account details. Remember to
-run `chmod 600 ~/.aib-sucker`, to make sure that only you can read
-this file.
+Note that there's no comma after the last account details.
 
 Once you've prepared that config file, run:
 
