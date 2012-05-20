@@ -18,7 +18,7 @@ class PdfParse:
         items_top = 300
         items_bottom = 750
 
-        date_rpos = 70
+        date_lpos = 50
         desc_lpos = 79
         debit_rpos = 307
         credit_rpos = 363
@@ -40,7 +40,7 @@ class PdfParse:
         items_top = 300
         items_bottom = 1200
 
-        date_rpos = 70
+        date_lpos = 160
         desc_lpos = 178
         debit_rpos = 606
         credit_rpos = 621
@@ -136,7 +136,7 @@ class PdfParse:
             if(top_pos<conf.items_top or top_pos>conf.items_bottom):
                 continue
 
-            if(left_pos<=conf.date_rpos):
+            if(left_pos<=conf.date_lpos):
                 dateMatch = re.match(conf.dateRegEx,elm.string)
                 if(dateMatch):
                     date = dateMatch.group(0) + conf.dateParseSuffix
