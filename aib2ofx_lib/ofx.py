@@ -92,24 +92,24 @@ NEWFILEUID:NONE
         transactions = []
         for transaction in data['operations']:
             t = transaction.copy()
-            if t['credit']:
+            if not t['debit']:
                 t['type'] = 'CREDIT'
                 t['amount'] = t['credit']
             else:
                 t['type'] = 'DEBIT'
                 t['amount'] = '-%s' % t['debit']
             t['timestamp'] = _toDate(t['timestamp'])
-            t['tid'] = sha256(t['timestamp'] + t['amount'] + t['description']).hexdigest()
+            t['tid'] = sha256(t['timestamp'].encode("utf-8") + t['amount'].encode("utf-8") + t['description'].encode("utf-8")).hexdigest()
             transactions.append(self.single_transaction % t)
 
-        list_of_transactions = '\n'.join(transactions)
+        data['transactions'] = '\n'.join(transactions)
 
         # Wrap up and return resulting OFX.
-        ofx = '\n'.join ((self.opening,
-                         self.headers[data['type']],
-                         self.transactions_header,
-                         list_of_transactions,
-                         self.closing[data['type']]))
+        ofx = '\n'.join((self.opening,
+                        self.headers[data['type']],
+                        self.transactions_header,
+                        '%(transactions)s',
+                        self.closing[data['type']]))
         ofx = ofx % data
 
         return ofx

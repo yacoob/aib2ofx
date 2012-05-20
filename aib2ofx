@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import optparse, re
+import optparse, re, sys, codecs
 
-from aib2ofx_lib import aib, cfg, ofx
+from aib2ofx_lib import aib, cfg, ofx, pdfparse
 
 
 def getOptions():
@@ -13,46 +13,85 @@ def getOptions():
             '-d', '--output-dir',
             dest='output_dir', help='directory to put OFX files in [/tmp]'
         ),
+        optparse.make_option(
+            '-D', '--debug', action='store_true',
+            dest='debug_mode', help='display some debug output [False]'
+        ),
+        optparse.make_option(
+            '-q', '--quiet', action='store_true',
+            dest='quiet_mode', help='display no output at all [False]'
+        ),
+        optparse.make_option(
+            '-p', '--pdfstatement-dir',
+            dest='pdfstatement_dir', help='directory location of pdf statements'
+        ),
     ]
     parser.add_options(option_list)
-    parser.set_defaults(output_dir='/tmp')
+    parser.set_defaults(output_dir='/tmp', debug_mode=False, quiet_mode=False)
     return parser.parse_args()
 
 
-def getData(user, config, output_dir, formatter):
+def getData(user, config, output_dir, formatter, chatter):
+
+    def show_and_tell(pre, function, post='done.'):
+        if (chatter['quiet']):
+            function(chatter)
+        else:
+            print pre,
+            sys.stdout.flush()
+            function(chatter)
+            print post
+
+
     cleanup_re = re.compile('[- 	]+')
 
     # Login to the bank, scrape data for all accounts.
     creds = config[user]
-    bank = aib.aib(creds)
-    bank.login()
-    bank.scrape()
-    bank.bye()
+    bank = aib.aib(creds, chatter)
+    show_and_tell('Logging in as \'%s\'...' % user, bank.login)
+    show_and_tell('Scraping account pages for data...', bank.scrape)
+    show_and_tell('Logging \'%s\' out...' % user, bank.bye)
 
     # Save each account to separate OFX file.
     for account in bank.getdata().values():
         name = re.sub(cleanup_re,
                       '_',
                       account['accountId']).lower()
-        f = open(
-            '%s/%s_%s.ofx' % (output_dir, user, name),
-            'w'
-        )
-        f.write(formatter.prettyprint(account))
-        f.close
+        writeFile(account, output_dir, user, name, formatter)
 
+def writeFile(account_data, output_dir, user, accountId, formatter):
+        f = codecs.open(
+            '%s/%s_%s.ofx' % (output_dir, user, accountId),
+            'w'
+            'utf-8'
+        )
+        f.write(formatter.prettyprint(account_data).encode('utf-8'))
+        f.close
 
 def main():
     # Parse command line options.
     (options, args) = getOptions()
+    chatter = {
+        'quiet': options.quiet_mode,
+        'debug': options.debug_mode,
+    }
 
     # Read user-provided credentials.
     config = cfg.config()
     formatter = ofx.ofx()
 
-    # Iterate through accounts, scrape, format and save data.
-    for user in config.users():
-        getData(user, config, options.output_dir, formatter)
+    if options.pdfstatement_dir:
+        pdfparser = pdfparse.PdfParse(options.pdfstatement_dir)
+        user = config.users()[0]
+        data = pdfparser.getData()
+        for d in data:
+            accountId = d['accountId']+"_"+d['reportDate'].strftime('%Y%m%d')
+            writeFile(d, options.output_dir, user, accountId, formatter)
+    else:
+        # Iterate through accounts, scrape, format and save data.
+        for user in config.users():
+            getData(user, config, options.output_dir, formatter,
+                    chatter)
 
 
 if __name__ == '__main__':
