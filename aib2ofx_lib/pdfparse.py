@@ -25,6 +25,7 @@ class PdfParse:
 
         dateRegEx = '\d+\s\w+\s\d{4,4}'
         dateFormat = '%d %b %Y'
+        dateParseSuffix = ''
         accountNoRegEx = '\d{5,5}-\d{3,3}'
 
     class CreditAccountConfiguration(object):
@@ -43,7 +44,10 @@ class PdfParse:
         balance_rpos=430
 
         dateRegEx = '\d+\s\w+'
-        dateFormat = '%d %b'
+        dateFormat = '%d %b %Y'
+        # We can't use the default year of 1900 because it's not a leap year,
+        # so we force it to 2000 so that 29 Feb will parse successfully.
+        dateParseSuffix = ' 2000'
         accountNoRegEx = '\d{4} \d{2}\*{2} \*{4} \d{4}'
 
     def __init__(self, directory):
@@ -124,7 +128,7 @@ class PdfParse:
             if(left_pos<=conf.date_rpos):
                 dateMatch = re.match(conf.dateRegEx,elm.string)
                 if(dateMatch):
-                    date = dateMatch.group(0)
+                    date = dateMatch.group(0) + conf.dateParseSuffix
                     current_ts = datetime.strptime(date, conf.dateFormat)
                     if(statement_date):
                         current_ts = (current_ts.replace(statement_date.year -
