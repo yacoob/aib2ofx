@@ -13,15 +13,17 @@ class PdfParse:
         new_operations = ['BALANCE FORWARD', 'Interest Rate', 'New Interest Rate']
         blacklisted = []
         end_of_operations = []
+        cover_page = None
 
-        items_top=300
-        items_bottom=750
+        items_top = 300
+        items_bottom = 750
 
-        date_rpos=70
-        desc_lpos=79
-        debit_rpos=307
-        credit_rpos=363
-        balance_rpos=430
+        date_rpos = 70
+        desc_lpos = 79
+        debit_rpos = 307
+        credit_rpos = 363
+        cover_balance = None
+        balance_rpos = 430
 
         dateRegEx = '\d+\s\w+\s\d{4,4}'
         dateFormat = '%d %b %Y'
@@ -32,16 +34,18 @@ class PdfParse:
         type = 'credit'
         new_operations = []
         blacklisted = ['Amount', 'Details and', 'Reference Number']
-        end_of_operations = ['Total Transactions for this period']
+        end_of_operations = ['Start Date']
+        cover_page = '1'
 
-        items_top=250
-        items_bottom=800
+        items_top = 300
+        items_bottom = 1200
 
-        date_rpos=70
-        desc_lpos=119
-        debit_rpos=404
-        credit_rpos=414
-        balance_rpos=430
+        date_rpos = 70
+        desc_lpos = 178
+        debit_rpos = 606
+        credit_rpos = 621
+        cover_balance = 'New Balance'
+        balance_rpos = 607
 
         dateRegEx = '\d+\s\w+'
         dateFormat = '%d %b %Y'
@@ -80,7 +84,7 @@ class PdfParse:
 
         operations = statement['operations']
         data['operations']=operations
-        data['balance']=operations[-1]['balance']
+        data['balance']=statement['balance']
         data['available']=data['balance']
         data['reportDate']=operations[-1]['timestamp']
         return data
@@ -96,6 +100,7 @@ class PdfParse:
         current_ts = ''
         descriptions=[]
         accountId = ''
+        balance = ''
         #Template for an operation
         operation_tmpl = dict(debit='',credit='',balance='',description='')
         operation=operation_tmpl.copy()
@@ -113,6 +118,12 @@ class PdfParse:
                 month_year = ' '.join(elm.string.split(' ')[-2:])
                 statement_date = datetime.strptime(month_year, '%B, %Y')
 
+            if(elm.findParent('page')['number'] == conf.cover_page):
+                if(abs(right_pos-conf.balance_rpos)<2):
+                    if(descriptions and descriptions[0]==conf.cover_balance):
+                        balance = elm.string.replace(',','')
+                descriptions = [elm.string]
+                continue
             if(elm.string in conf.end_of_operations):
                 break
             if(elm.string in conf.blacklisted):
@@ -160,8 +171,9 @@ class PdfParse:
 
             if(right_pos==conf.balance_rpos and len(operations)):
                 operations[-1]['balance'] = elm.string
+                balance = elm.string
 
         if(len(operations) and descriptions):
             operations[-1]['description'] += ' ' + ' '.join(descriptions)
 
-        return {'type':conf.type, 'accountId':accountId, 'operations':operations}
+        return {'type':conf.type, 'accountId':accountId, 'operations':operations, 'balance':balance}

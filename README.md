@@ -78,8 +78,6 @@ Then run:
 
     aib2ofx -d /output/directory -p /pdf/statement/directory
 
-Only checking account e-statements are supported currently.
-
 ## Guarantee
 
 There is none.
