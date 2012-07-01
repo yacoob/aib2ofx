@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import cookielib, datetime, exceptions, os, re
+import cookielib, datetime, exceptions, logging, os, re, tempfile
 
 from BeautifulSoup import BeautifulSoup
 import mechanize
@@ -29,12 +29,31 @@ def _toValue(text):
         return tmp
 
 
+class CleansingFormatter(logging.Formatter):
+    def __init__(self, fmt=None, datefmt=None):
+        self.amount_re = re.compile('(?:\d+,)*\d+\.\d+(?: DR)?')
+        self.date_re = re.compile('\d\d/\d\d/\d\d')
+        self.description_re = re.compile('<td>(?!dd/mm/yy).+</td>')
+        logging.Formatter.__init__(self, fmt, datefmt)
+
+    def format(self, record):
+        tmp = record.msg
+        tmp = self.amount_re.sub('X.XX', tmp)
+        tmp = self.date_re.sub('dd/mm/yy', tmp)
+        tmp = self.description_re.sub('<td>dummy description</td>', tmp)
+        record.msg = tmp
+        return logging.Formatter.format(self, record)
+
+
 class aib:
     strip_chars = '\xa0\xc2'
+    new_operations = ['Interest Rate']
 
-    def __init__(self, logindata, debug=False):
+    def __init__(self, logindata, chatter):
         self.logindata = logindata
         self.br = mechanize.Browser()
+        self.quiet = chatter['quiet']
+        self.debug = chatter['debug']
         br = self.br
         cj = cookielib.LWPCookieJar()
         br.set_cookiejar(cj)
@@ -46,23 +65,38 @@ class aib:
         br.set_handle_robots(False)
         br.set_handle_refresh(mechanize._http.HTTPRefreshProcessor(), max_time=1)
 
-        br.set_debug_http(debug)
-        br.set_debug_redirects(debug)
-        br.set_debug_responses(debug)
+        if self.debug:
+            # make a directory for debugging output
+            self.debugdir = tempfile.mkdtemp(prefix='aib2ofx_')
+            print 'WARNING: putting *sensitive* debug data in %s' % self.debugdir
+            self.logger = logging.getLogger("mechanize")
+            fh = logging.FileHandler(self.debugdir + '/mechanize.log', 'w')
+            fm = CleansingFormatter('%(asctime)s\n%(message)s')
+            fh.setFormatter(fm)
+            self.logger.addHandler(fh)
+            self.logger.setLevel(logging.DEBUG)
+
+            br.set_debug_redirects(True)
+            br.set_debug_responses(True)
+        else:
+            logging.disable(logging.DEBUG)
+            self.logger = logging.getLogger(None)
 
         br.addheaders = [('User-agent', 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1')]
         self.login_done = False
         self.data = {}
 
 
-    def login(self):
+    def login(self, quiet=False):
         br = self.br
         logindata = self.logindata
 
         # first stage of login
+        self.logger.debug('Requesting first login page.')
         br.open('https://aibinternetbanking.aib.ie/inet/roi/login.htm')
         br.select_form(name='form1')
         br.set_value(name='regNumber', value=logindata['regNumber'])
+        self.logger.debug('Submitting first login form.')
         br.submit()
 
         # second stage of login
@@ -74,22 +108,28 @@ class aib:
             l = c.get_labels()[-1].text
             requested_digit = int(l[-1]) - 1
             pin_digit = logindata['pin'][requested_digit]
+            self.logger.debug('Using digit number %d of PIN.' % (requested_digit + 1))
             br.form[name] = pin_digit
 
         name = 'challengeDetails.challengeEntered'
         c = br.find_control('challengeDetails.challengeEntered')
         l = c.get_labels()[-1].text
         if (re.search('work phone', l)):
+            self.logger.debug('Using work number')
             br.form[name] = logindata['workNumber']
         else:
+            self.logger.debug('Using home number')
             br.form[name] = logindata['homeNumber']
+
+        self.logger.debug('Submitting second login form.')
         br.submit()
 
         # mark login as done
+        # FIXME: should really check whether we succesfully logged in here
         self.login_done = True
 
 
-    def scrape(self):
+    def scrape(self, quiet=False):
         if not self.login_done:
             self.login()
 
@@ -97,7 +137,8 @@ class aib:
         self.data = {}
 
         # make sure we're on the top page
-        br.select_form(nr=2)
+        self.logger.debug('Requesting main page with account listing to grab totals.')
+        br.select_form(predicate=lambda f:f.action.endswith('/accountoverview.htm'))
         br.submit()
 
         # parse totals
@@ -123,29 +164,34 @@ class aib:
 
 
         # parse transactions
-        br.select_form(nr=3)
+        self.logger.debug('Switching to transaction listing.')
+        br.select_form(predicate=lambda f:f.action.endswith('/statement.htm'))
         br.submit()
 
-        br.select_form(nr=11)
+        br.select_form(predicate=lambda f:f.attrs.get('id') == 'statementCommand')
         account_dropdown = br.find_control(name='index')
         accounts_on_page = [m.get_labels()[-1].text for m in account_dropdown.get_items()]
         accounts_in_data = self.data.keys()
 
         for account in accounts_on_page:
             if not account in accounts_in_data:
-                print "skipping dubious account %s" % account
+                self.logger.debug('skipping dubious account %s' % account)
                 continue
 
             # get account's page
-            br.select_form(nr=11)
+            self.logger.debug('Requesting transactions for %s.' % account)
+            br.select_form(predicate=lambda f:f.attrs.get('id') == 'statementCommand')
             account_dropdown = br.find_control(name='index')
             account_dropdown.set_value_by_label([account])
             br.submit()
 
             # mangle the data
             statement_page = BeautifulSoup(br.response().read(), convertEntities='html')
-            table = statement_page.find('table', 'aibtableStyle01')
+            header = statement_page.find('div', 'aibStyle07')
+            body = header.findNextSibling('div')
+            table = body.find('table', 'aibtableStyle01')
             operations = []
+            last_operation = None
             # single row consists of following <td>s:
             # Checking:
             # Date, Description, Debit, Credit, Balance
@@ -165,6 +211,15 @@ class aib:
 
                 if operation['debit'] or operation['credit']:
                     operations.append(operation)
+                    last_operation = operation
+                elif (last_operation and
+                      operation['description'] not in self.new_operations and
+                      operation['timestamp'] == last_operation['timestamp']):
+                    last_operation['description'] += ' ' + operation['description']
+                    if operation.get('balance') and not last_operation.get('balance'):
+                      last_operation['balance'] = operation['balance']
+                else:
+                    last_operation = operation
 
             acc = self.data[account]
             if acc['type'] != 'credit':
@@ -174,7 +229,9 @@ class aib:
     def getdata(self):
         return self.data
 
-    def bye(self):
+    def bye(self, quiet=False):
+        self.logger.debug('Logging out.')
         br = self.br
-        br.select_form(nr=1)
+        br.select_form(predicate=lambda f:f.action.endswith('/logout.htm'))
         br.submit()
+        # FIXME: check whether we really logged out here

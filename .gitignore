@@ -1,5 +1,6 @@
 main*
 statement*
 bla.ofx
-build
-dist
+build/
+dist/
+aib2ofx.egg-info/
