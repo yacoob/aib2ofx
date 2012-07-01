@@ -97,7 +97,7 @@ class aib:
         self.data = {}
 
         # make sure we're on the top page
-        br.select_form(nr=2)
+        br.select_form(predicate=lambda f:f.action.endswith('/accountoverview.htm'))
         br.submit()
 
         # parse totals
@@ -123,10 +123,10 @@ class aib:
 
 
         # parse transactions
-        br.select_form(nr=3)
+        br.select_form(predicate=lambda f:f.action.endswith('/statement.htm'))
         br.submit()
 
-        br.select_form(nr=11)
+        br.select_form(predicate=lambda f:f.attrs.get('id') == 'statementCommand')
         account_dropdown = br.find_control(name='index')
         accounts_on_page = [m.get_labels()[-1].text for m in account_dropdown.get_items()]
         accounts_in_data = self.data.keys()
@@ -137,14 +137,16 @@ class aib:
                 continue
 
             # get account's page
-            br.select_form(nr=11)
+            br.select_form(predicate=lambda f:f.attrs.get('id') == 'statementCommand')
             account_dropdown = br.find_control(name='index')
             account_dropdown.set_value_by_label([account])
             br.submit()
 
             # mangle the data
             statement_page = BeautifulSoup(br.response().read(), convertEntities='html')
-            table = statement_page.find('table', 'aibtableStyle01')
+            header = statement_page.find('div', 'aibStyle07')
+            body = header.findNextSibling('div')
+            table = body.find('table', 'aibtableStyle01')
             operations = []
             # single row consists of following <td>s:
             # Checking:
@@ -176,5 +178,5 @@ class aib:
 
     def bye(self):
         br = self.br
-        br.select_form(nr=1)
+        br.select_form(predicate=lambda f:f.action.endswith('/logout.htm'))
         br.submit()
