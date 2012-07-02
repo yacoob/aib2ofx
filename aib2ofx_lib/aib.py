@@ -28,6 +28,12 @@ def _toValue(text):
     else:
         return tmp
 
+def _attrEndsWith(text):
+    return lambda f: f.action.endswith(text)
+
+def _attrEquals(name, text):
+    return lambda f: f.attrs.get(name) == text
+
 
 class CleansingFormatter(logging.Formatter):
     def __init__(self, fmt=None, datefmt=None):
@@ -138,7 +144,7 @@ class aib:
 
         # make sure we're on the top page
         self.logger.debug('Requesting main page with account listing to grab totals.')
-        br.select_form(predicate=lambda f:f.action.endswith('/accountoverview.htm'))
+        br.select_form(predicate=_attrEndsWith('/accountoverview.htm'))
         br.submit()
 
         # parse totals
@@ -165,10 +171,10 @@ class aib:
 
         # parse transactions
         self.logger.debug('Switching to transaction listing.')
-        br.select_form(predicate=lambda f:f.action.endswith('/statement.htm'))
+        br.select_form(predicate=_attrEndsWith('/statement.htm'))
         br.submit()
 
-        br.select_form(predicate=lambda f:f.attrs.get('id') == 'statementCommand')
+        br.select_form(predicate=_attrEquals('id', 'statementCommand'))
         account_dropdown = br.find_control(name='index')
         accounts_on_page = [m.get_labels()[-1].text for m in account_dropdown.get_items()]
         accounts_in_data = self.data.keys()
@@ -180,7 +186,7 @@ class aib:
 
             # get account's page
             self.logger.debug('Requesting transactions for %s.' % account)
-            br.select_form(predicate=lambda f:f.attrs.get('id') == 'statementCommand')
+            br.select_form(predicate=_attrEquals('id', 'statementCommand'))
             account_dropdown = br.find_control(name='index')
             account_dropdown.set_value_by_label([account])
             br.submit()
@@ -230,6 +236,6 @@ class aib:
     def bye(self, quiet=False):
         self.logger.debug('Logging out.')
         br = self.br
-        br.select_form(predicate=lambda f:f.action.endswith('/logout.htm'))
+        br.select_form(predicate=_attrEndsWith('/logout.htm'))
         br.submit()
         # FIXME: check whether we really logged out here
