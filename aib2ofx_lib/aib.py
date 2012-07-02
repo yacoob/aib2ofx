@@ -138,7 +138,7 @@ class aib:
 
         # make sure we're on the top page
         self.logger.debug('Requesting main page with account listing to grab totals.')
-        br.select_form(nr=2)
+        br.select_form(predicate=lambda f:f.action.endswith('/accountoverview.htm'))
         br.submit()
 
         # parse totals
@@ -165,10 +165,10 @@ class aib:
 
         # parse transactions
         self.logger.debug('Switching to transaction listing.')
-        br.select_form(nr=3)
+        br.select_form(predicate=lambda f:f.action.endswith('/statement.htm'))
         br.submit()
 
-        br.select_form(nr=11)
+        br.select_form(predicate=lambda f:f.attrs.get('id') == 'statementCommand')
         account_dropdown = br.find_control(name='index')
         accounts_on_page = [m.get_labels()[-1].text for m in account_dropdown.get_items()]
         accounts_in_data = self.data.keys()
@@ -180,15 +180,17 @@ class aib:
 
             # get account's page
             self.logger.debug('Requesting transactions for %s.' % account)
-            br.select_form(nr=11)
+            br.select_form(predicate=lambda f:f.attrs.get('id') == 'statementCommand')
             account_dropdown = br.find_control(name='index')
             account_dropdown.set_value_by_label([account])
             br.submit()
 
             # mangle the data
             statement_page = BeautifulSoup(br.response().read(), convertEntities='html')
-            table = statement_page.find('table', 'aibtableStyle01')
             acc = self.data[account]
+            header = statement_page.find('div', 'aibStyle07')
+            body = header.findNextSibling('div')
+            table = body.find('table', 'aibtableStyle01')
             operations = []
 
             if table:
@@ -228,6 +230,6 @@ class aib:
     def bye(self, quiet=False):
         self.logger.debug('Logging out.')
         br = self.br
-        br.select_form(nr=1)
+        br.select_form(predicate=lambda f:f.action.endswith('/logout.htm'))
         br.submit()
         # FIXME: check whether we really logged out here
