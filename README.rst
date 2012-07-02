@@ -2,6 +2,7 @@
 aib2ofx
 ==========
 ...or how to suck data out of AIB's online interface, and format it into ``OFX`` file.
+Also supports conversion of AIB e-statements.
 
 Installation
 --------------
@@ -89,6 +90,14 @@ Once you've prepared that config file, run::
 The script should connect to AIB, log in using provided credentials,
 iterate through all accounts, and save each of those to a separate
 file located in ``/output/directory``.
+
+To convert AIB PDF e-statements, download the statements from online banking and
+put them in a folder of your choice.
+Then run:
+
+    aib2ofx -d /output/directory -p /pdf/statement/directory
+
+Only checking account e-statements are supported currently.
 
 Guarantee
 ------------
