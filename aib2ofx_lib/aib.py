@@ -28,7 +28,7 @@ def _toValue(text):
     else:
         return tmp
 
-def _attrEndsWith(text):
+def _actionEndsWith(text):
     return lambda f: f.action.endswith(text)
 
 def _attrEquals(name, text):
@@ -56,7 +56,6 @@ class aib:
 
     def __init__(self, logindata, chatter):
         self.logindata = logindata
-        self.cc_re = re.compile(logindata.get('ccards', '^$'))
         self.br = mechanize.Browser()
         self.quiet = chatter['quiet']
         self.debug = chatter['debug']
@@ -144,7 +143,7 @@ class aib:
 
         # make sure we're on the top page
         self.logger.debug('Requesting main page with account listing to grab totals.')
-        br.select_form(predicate=_attrEndsWith('/accountoverview.htm'))
+        br.select_form(predicate=_actionEndsWith('/accountoverview.htm'))
         br.submit()
 
         # parse totals
@@ -154,14 +153,7 @@ class aib:
                 continue
             account = {}
             account['accountId'] = div.span.renderContents()
-            amount = _toValue(div.h3.renderContents().partition('\r')[0])
-            # FIXME: need better method of detecting credit cards
-            if amount[0] == '-' or self.cc_re.match(account['accountId']):
-                account['type'] = 'credit'
-            else:
-                account['type'] = 'checking'
-
-            account['available'] = amount
+            account['available'] = _toValue(div.h3.renderContents().partition('\r')[0])
             account['currency'] = 'EUR'
             account['bankId'] = 'AIB'
             account['reportDate'] = datetime.datetime.now()
@@ -171,7 +163,7 @@ class aib:
 
         # parse transactions
         self.logger.debug('Switching to transaction listing.')
-        br.select_form(predicate=_attrEndsWith('/statement.htm'))
+        br.select_form(predicate=_actionEndsWith('/statement.htm'))
         br.submit()
 
         br.select_form(predicate=_attrEquals('id', 'statementCommand'))
@@ -200,11 +192,20 @@ class aib:
             operations = []
 
             if table:
-                # single row consists of following <td>s:
+                # single row consists of following <th>s:
                 # Checking:
                 # Date, Description, Debit, Credit, Balance
                 # CCard:
                 # Date, Description, Debit, Credit
+                num_columns = len(table.tr.findAll('th'))
+                if num_columns == 4:
+                    acc['type'] = 'credit'
+                elif num_columns == 5:
+                    acc['type'] = 'checking'
+                else:
+                    print 'unknown number of columns %d, removing account %s from list' % (num_columns, account)
+                    del self.data[account]
+                    continue
                 for row in table.findAll('tr'):
                     if not row.td:
                         continue
@@ -214,7 +215,7 @@ class aib:
                     operation['description'] = cells[1].renderContents()
                     operation['debit'] = _toValue(cells[2].renderContents())
                     operation['credit'] = _toValue(cells[3].renderContents())
-                    if self.data[account]['type'] != 'credit':
+                    if acc['type'] != 'credit':
                         operation['balance'] = _toValue(cells[4].renderContents().strip(self.strip_chars))
 
                     if operation['debit'] or operation['credit']:
@@ -227,7 +228,6 @@ class aib:
             else:
                 self.logger.debug('removing empty account %s from list' % account)
                 del self.data[account]
-                continue
 
 
     def getdata(self):
@@ -236,6 +236,6 @@ class aib:
     def bye(self, quiet=False):
         self.logger.debug('Logging out.')
         br = self.br
-        br.select_form(predicate=_attrEndsWith('/logout.htm'))
+        br.select_form(predicate=_actionEndsWith('/logout.htm'))
         br.submit()
         # FIXME: check whether we really logged out here
