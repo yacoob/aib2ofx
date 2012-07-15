@@ -28,7 +28,7 @@ def _toValue(text):
     else:
         return tmp
 
-def _attrEndsWith(text):
+def _actionEndsWith(text):
     return lambda f: f.action.endswith(text)
 
 def _attrEquals(name, text):
@@ -144,7 +144,7 @@ class aib:
 
         # make sure we're on the top page
         self.logger.debug('Requesting main page with account listing to grab totals.')
-        br.select_form(predicate=_attrEndsWith('/accountoverview.htm'))
+        br.select_form(predicate=_actionEndsWith('/accountoverview.htm'))
         br.submit()
 
         # parse totals
@@ -171,7 +171,7 @@ class aib:
 
         # parse transactions
         self.logger.debug('Switching to transaction listing.')
-        br.select_form(predicate=_attrEndsWith('/statement.htm'))
+        br.select_form(predicate=_actionEndsWith('/statement.htm'))
         br.submit()
 
         br.select_form(predicate=_attrEquals('id', 'statementCommand'))
@@ -236,6 +236,6 @@ class aib:
     def bye(self, quiet=False):
         self.logger.debug('Logging out.')
         br = self.br
-        br.select_form(predicate=_attrEndsWith('/logout.htm'))
+        br.select_form(predicate=_actionEndsWith('/logout.htm'))
         br.submit()
         # FIXME: check whether we really logged out here
