@@ -203,7 +203,8 @@ class aib:
                 elif num_columns == 5:
                     acc['type'] = 'checking'
                 else:
-                    print 'unknown number of columns %d, removing account %s from list' % (num_columns, account)
+                    self.logger.debug('unknown number of columns %d, removing account %s from list' %
+                            (num_columns, account))
                     del self.data[account]
                     continue
                 for row in table.findAll('tr'):
