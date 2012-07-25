@@ -101,10 +101,3 @@ it's not sending the data anywhere, it's not doing anything nasty. I'm
 using it day to day to get data about my AIB accounts into a financial
 program that I use. It should work for you as good as it works for
 me. See the `LICENSE` file for more details.
-
-## Varia
-
-`GM` directory contains a crude GreaseMonkey version. It allows you to
-download transactions in either OFX or CSV format, from *Statement*
-page, but you have to do it account by account. See the `GM/README.md`
-for details.
