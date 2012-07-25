@@ -31,6 +31,16 @@ def getOptions():
     return parser.parse_args()
 
 
+def writeFile(account_data, output_dir, user, accountId, formatter):
+        f = codecs.open(
+            '%s/%s_%s.ofx' % (output_dir, user, accountId),
+            'w',
+            'utf-8'
+        )
+        f.write(formatter.prettyprint(account_data).encode('utf-8'))
+        f.close
+
+
 def getData(user, config, output_dir, formatter, chatter):
 
     def show_and_tell(pre, function, post='done.'):
@@ -60,16 +70,6 @@ def getData(user, config, output_dir, formatter, chatter):
         writeFile(account, output_dir, user, name, formatter)
 
 
-def writeFile(account_data, output_dir, user, accountId, formatter):
-        f = codecs.open(
-            '%s/%s_%s.ofx' % (output_dir, user, accountId),
-            'w'
-            'utf-8'
-        )
-        f.write(formatter.prettyprint(account_data).encode('utf-8'))
-        f.close
-
-
 def main():
     # Parse command line options.
     (options, args) = getOptions()
@@ -87,7 +87,7 @@ def main():
         user = config.users()[0]
         data = pdfparser.getData()
         for d in data:
-            accountId = d['accountId']+"_"+d['reportDate'].strftime('%Y%m%d')
+            accountId = d['accountId'] + "_" + d['reportDate'].strftime('%Y%m%d')
             writeFile(d, options.output_dir, user, accountId, formatter)
     else:
         # Iterate through accounts, scrape, format and save data.
