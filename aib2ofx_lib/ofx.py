@@ -51,17 +51,19 @@ NEWFILEUID:NONE
 </CCACCTFROM>""",
             }
 
-        self.transactions_header = """
+        self.transactions = """
 <BANKTRANLIST>
 <DTSTART>%(firstDate)s</DTSTART>
-<DTEND>%(lastDate)s</DTEND>"""
+<DTEND>%(lastDate)s</DTEND>
+%(transactions)s
+</BANKTRANLIST>"""
 
         self.closing = {
-            'checking': """</BANKTRANLIST>
+            'checking': """
 <LEDGERBAL><BALAMT>%(balance)s</BALAMT><DTASOF>%(reportDate)s</DTASOF></LEDGERBAL>
 <AVAILBAL><BALAMT>%(available)s</BALAMT><DTASOF>%(reportDate)s</DTASOF></AVAILBAL>
 </STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>""",
-            'credit': """</BANKTRANLIST>
+            'credit': """
 <LEDGERBAL><BALAMT>%(available)s</BALAMT><DTASOF>%(reportDate)s</DTASOF></LEDGERBAL>
 </CCSTMTRS></CCSTMTTRNRS></CREDITCARDMSGSRSV1></OFX>""",
             }
@@ -102,14 +104,13 @@ NEWFILEUID:NONE
             t['tid'] = sha256(t['timestamp'] + t['amount'] + t['description']).hexdigest()
             transactions.append(self.single_transaction % t)
 
-        list_of_transactions = '\n'.join(transactions)
+        data['transactions'] = '\n'.join(transactions)
 
         # Wrap up and return resulting OFX.
-        ofx = '\n'.join ((self.opening,
-                         self.headers[data['type']],
-                         self.transactions_header,
-                         list_of_transactions,
-                         self.closing[data['type']]))
+        ofx = '\n'.join((self.opening,
+                        self.headers[data['type']],
+                        self.transactions,
+                        self.closing[data['type']]))
         ofx = ofx % data
 
         return ofx
