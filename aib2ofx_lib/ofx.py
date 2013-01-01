@@ -2,6 +2,7 @@
 # coding: utf-8
 
 from hashlib import sha256
+from xml.sax.saxutils import escape
 
 
 def _toDate(d):
@@ -94,6 +95,7 @@ NEWFILEUID:NONE
         transactions = []
         for transaction in data['operations']:
             t = transaction.copy()
+            t['description'] = escape(t['description'])
             if t['credit']:
                 t['type'] = 'CREDIT'
                 t['amount'] = t['credit']
