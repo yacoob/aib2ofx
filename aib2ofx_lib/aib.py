@@ -57,7 +57,9 @@ class aib:
 
     def __init__(self, logindata, chatter):
         self.logindata = logindata
-        self.br = mechanize.Browser()
+        factory = mechanize.DefaultFactory()
+        factory._forms_factory = mechanize.FormsFactory(form_parser_class=mechanize.XHTMLCompatibleFormParser)
+        self.br = mechanize.Browser(factory=factory)
         self.quiet = chatter['quiet']
         self.debug = chatter['debug']
         br = self.br
