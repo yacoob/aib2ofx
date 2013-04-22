@@ -156,7 +156,9 @@ class aib:
                 continue
             account = {}
             account['accountId'] = div.span.renderContents()
-            account['available'] = _toValue(div.h3.renderContents().partition('\r')[0])
+            account['available'] = _toValue(
+                    div.h3.renderContents().translate(None, '\r\t\n' +
+                        ''.join([chr(i) for i in range(128,256)])))
             account['currency'] = 'EUR'
             account['bankId'] = 'AIB'
             account['reportDate'] = datetime.datetime.now()
