@@ -238,7 +238,10 @@ class aib:
                         last_operation = operation
 
                 if acc['type'] != 'credit':
-                    acc['balance'] = operations[-1]['balance']
+                    if operations:
+                        acc['balance'] = operations[-1]['balance']
+                    else:
+                        acc['balance'] = acc['available']
                 acc['operations'] = operations
 
             else:

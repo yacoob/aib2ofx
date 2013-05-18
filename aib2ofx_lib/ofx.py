@@ -88,8 +88,12 @@ NEWFILEUID:NONE
 
         # Calculate rest of necessary fields.
         data['reportDate'] = _toDate(data['reportDate'])
-        data['firstDate'] = _toDate(data['operations'][0]['timestamp'])
-        data['lastDate'] = _toDate(data['operations'][-1]['timestamp'])
+        if data['operations']:
+            data['firstDate'] = _toDate(data['operations'][0]['timestamp'])
+            data['lastDate'] = _toDate(data['operations'][-1]['timestamp'])
+        else:
+            data['firstDate'] = data['reportDate']
+            data['lastDate'] = data['reportDate']
 
         # Turn set of transactions into a lengthy string.
         transactions = []
