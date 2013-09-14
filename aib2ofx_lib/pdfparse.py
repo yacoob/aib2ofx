@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+from itertools import groupby
 from BeautifulSoup import BeautifulStoneSoup
 import re, os, subprocess, fnmatch, codecs
 from datetime import datetime
@@ -16,14 +17,14 @@ class PdfParse:
         cover_page = None
 
         items_top = 300
-        items_bottom = 750
+        items_bottom = 1100
 
-        date_lpos = 50
-        desc_lpos = 79
-        debit_rpos = 307
-        credit_rpos = 363
+        date_lpos = 55
+        desc_lpos = 118
+        debit_rpos = 461
+        credit_rpos = 545
         cover_balance = None
-        balance_rpos = 430
+        balance_rpos = 645
 
         dateRegEx = '\d+\s\w+\s\d{4,4}'
         dateFormat = '%d %b %Y'
@@ -97,83 +98,132 @@ class PdfParse:
         conf = self.CurrentAccountConfiguration
         statement_date = None
         operations=[]
-        current_ts = ''
-        descriptions=[]
         accountId = ''
         balance = ''
         #Template for an operation
         operation_tmpl = dict(debit='',credit='',balance='',description='')
         operation=operation_tmpl.copy()
 
+        def classify_cells(row):
+            """Takes a row of statement data and fills in some fields in a dict.
+
+            The resulting dict always has a description field. Optional fields
+            may include: timestamp, debit, credit, balance.
+
+            Note: a single row may not contain a single transaction. The
+            returned row corresponds to a line in the statement (literally).
+            """
+            res = {}
+            for cell in row:
+                s = ' '.join(cell.findAll(text=True)).strip()
+                top_pos = int(cell['top'])
+                left_pos = int(cell['left'])
+                right_pos = left_pos + int(cell['width'])
+
+                if(top_pos<conf.items_top or top_pos>conf.items_bottom):
+                    continue
+
+                if left_pos <= conf.date_lpos:
+                    dateMatch = re.match(conf.dateRegEx,s)
+                    if(dateMatch):
+                        date = dateMatch.group(0) + conf.dateParseSuffix
+                        current_ts = datetime.strptime(date, conf.dateFormat)
+                        if statement_date:
+                            current_ts = (current_ts.replace(statement_date.year -
+                                (1 if statement_date.month < 2 and current_ts.month > 10 else 0)))
+                        else:
+                            s = s.replace(date, '').lstrip()
+                            left_pos = conf.desc_lpos
+                        res['timestamp'] = current_ts
+
+                if abs(left_pos-conf.desc_lpos) < 2:
+                    res['description'] = s.replace(',','')
+
+                if abs(right_pos-conf.debit_rpos) < 2:
+                    res['debit'] = s.replace(',','')
+
+                if abs(right_pos-conf.credit_rpos) < 2:
+                    res['credit'] = s.replace(',','')
+
+                if abs(right_pos-conf.balance_rpos) < 2:
+                    res['balance'] = s
+                    balance = s
+            return res
+
+        def rows_reconciliator(rows_iter):
+            """Combines asequence of statement lines into operations."""
+            pending = {}
+            for row in rows_iter:
+                if not row:
+                    continue
+                description = row['description']
+                timestamp = row.get('timestamp')
+                credit = row.get('credit')
+                debit = row.get('debit')
+                balance = row.get('balance')
+                if pending and (timestamp or debit or credit):
+                    if pending.get('timestamp'):
+                        yield pending
+                    prev = pending
+                    pending = {
+                            'timestamp': timestamp or prev['timestamp'],
+                            'description': '',
+                            'credit': '',
+                            'debit': '',
+                            'balance': '',
+                    }
+                if credit:
+                    pending['credit'] = credit
+                if debit:
+                    pending['debit'] = debit
+                if balance:
+                    pending['balance'] = balance
+
+                if pending.get('description'):
+                    pending['description'] += ' '
+                else:
+                    pending['description'] = ''
+                pending['description'] += description
+            yield pending
+
         def position(elm):
-            return (elm.findParent('page')['number'], int(elm['top']), int(elm['left']))
+            return (elm.findParent('page')['number'], int(elm['top'])/5*5, int(elm['left']))
+
+        def rows_iter(soup):
+            """Iterates over rows of statement as dicts with some fields set."""
+            def row_id(elm):
+                """Returns elem['top'] floored to the nearest multiple of 5."""
+                return int(elm['top'])/5 * 5
+
+            for top_pos, row in groupby(sorted(soup.findAll('text'), key=position), row_id):
+                yield classify_cells(row)
 
         for elm in sorted(soup.findAll('text'), key=position):
             right_pos=int(elm['left'])+int(elm['width'])
             left_pos=int(elm['left'])
             top_pos=int(elm['top'])
 
-            if(not statement_date and elm.string.startswith(self.credit_card_marker)):
+            s = ' '.join(elm.findAll(text=True)).strip()
+            if(not statement_date and s.startswith(self.credit_card_marker)):
                 conf = self.CreditAccountConfiguration
-                month_year = ' '.join(elm.string.split(' ')[-2:])
+                month_year = ' '.join(s.split(' ')[-2:])
                 statement_date = datetime.strptime(month_year, '%B, %Y')
 
             if(elm.findParent('page')['number'] == conf.cover_page):
                 if(abs(right_pos-conf.balance_rpos)<2):
                     if(descriptions and descriptions[0]==conf.cover_balance):
-                        balance = elm.string.replace(',','')
-                descriptions = [elm.string]
+                        balance = s.replace(',','')
+                descriptions = [s]
                 continue
-            if(elm.string in conf.end_of_operations):
+            if(s in conf.end_of_operations):
                 break
-            if(elm.string in conf.blacklisted):
+            if(s in conf.blacklisted):
                 continue
 
-            accountIdMatch = re.search(conf.accountNoRegEx, elm.string)
+            accountIdMatch = re.search(conf.accountNoRegEx, s)
             if(accountIdMatch):
                 accountId=accountIdMatch.group(0).replace('*','x').replace(' ','-')
 
-            if(top_pos<conf.items_top or top_pos>conf.items_bottom):
-                continue
-
-            if(left_pos<=conf.date_lpos):
-                dateMatch = re.match(conf.dateRegEx,elm.string)
-                if(dateMatch):
-                    date = dateMatch.group(0) + conf.dateParseSuffix
-                    current_ts = datetime.strptime(date, conf.dateFormat)
-                    if(statement_date):
-                        current_ts = (current_ts.replace(statement_date.year -
-                            (1 if statement_date.month < 2 and current_ts.month > 10 else 0)))
-                    else:
-                        elm.string = elm.string.replace(date,'').lstrip()
-                        left_pos = conf.desc_lpos
-
-            commit_operation=False
-            if(abs(right_pos-conf.debit_rpos)<2):
-                operation['debit'] = elm.string.replace(',','')
-                commit_operation=True
-            if(abs(right_pos-conf.credit_rpos)<2):
-                operation['credit'] = elm.string.replace(',','')
-                commit_operation=True
-            if(left_pos==conf.desc_lpos):
-                descriptions.append(elm.string)
-                if(elm.string in conf.new_operations):
-                    commit_operation=True
-
-            if(commit_operation):
-                if(len(operations) and descriptions[:-1]):
-                    operations[-1]['description'] += ' ' + ' '.join(descriptions[:-1])
-                operation['description'] = descriptions[-1]
-                operation['timestamp'] = current_ts
-                operations.append(operation)
-                operation=operation_tmpl.copy()
-                descriptions=[]
-
-            if(right_pos==conf.balance_rpos and len(operations)):
-                operations[-1]['balance'] = elm.string
-                balance = elm.string
-
-        if(len(operations) and descriptions):
-            operations[-1]['description'] += ' ' + ' '.join(descriptions)
+        operations = list(rows_reconciliator(rows_iter(soup)))
 
         return {'type':conf.type, 'accountId':accountId, 'operations':operations, 'balance':balance}
