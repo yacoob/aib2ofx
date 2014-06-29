@@ -168,10 +168,10 @@ class aib:
 
         # parse transactions
         self.logger.debug('Switching to transaction listing.')
-        br.select_form(predicate=_actionEndsWith('/statement.htm'))
+        br.select_form(predicate=_actionEndsWith('statement.htm'))
         br.submit()
 
-        br.select_form(predicate=_attrEquals('id', 'statementCommand'))
+        br.select_form(predicate=_attrEquals('id', 'accountForm'))
         account_dropdown = br.find_control(name='index')
         accounts_on_page = [m.get_labels()[-1].text for m in account_dropdown.get_items()]
         accounts_in_data = self.data.keys()
@@ -183,7 +183,7 @@ class aib:
 
             # get account's page
             self.logger.debug('Requesting transactions for %s.' % account)
-            br.select_form(predicate=_attrEquals('id', 'statementCommand'))
+            br.select_form(predicate=_attrEquals('id', 'accountForm'))
             account_dropdown = br.find_control(name='index')
             account_dropdown.set_value_by_label([account])
             br.submit()
