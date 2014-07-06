@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import codecs, optparse, re, sys
+import codecs, datetime, errno, optparse, os, re, sys
 
 from aib2ofx_lib import aib, cfg, ofx, pdfparse
 
@@ -27,18 +27,20 @@ def getOptions():
         ),
     ]
     parser.add_options(option_list)
-    parser.set_defaults(output_dir='/tmp', debug_mode=False, quiet_mode=False)
+    output_dir = os.path.join('.', datetime.date.today().strftime('%Y-%m-%d'))
+    parser.set_defaults(output_dir=output_dir, debug_mode=False,
+            quiet_mode=False)
     return parser.parse_args()
 
 
 def writeFile(account_data, output_dir, user, accountId, formatter):
-        f = codecs.open(
-            '%s/%s_%s.ofx' % (output_dir, user, accountId),
-            'w',
-            'utf-8'
-        )
-        f.write(formatter.prettyprint(account_data).encode('utf-8'))
-        f.close
+    f = codecs.open(
+        '%s/%s_%s.ofx' % (output_dir, user, accountId),
+        'w',
+        'utf-8'
+    )
+    f.write(formatter.prettyprint(account_data).encode('utf-8'))
+    f.close
 
 
 def getData(user, config, output_dir, formatter, chatter):
@@ -81,6 +83,12 @@ def main():
     # Read user-provided credentials.
     config = cfg.config()
     formatter = ofx.ofx()
+
+    try:
+        os.makedirs(options.output_dir)
+    except OSError as exception:
+        if exception.errno != errno.EEXIST:
+            raise
 
     if options.pdfstatement_dir:
         pdfparser = pdfparse.PdfParse(options.pdfstatement_dir)
