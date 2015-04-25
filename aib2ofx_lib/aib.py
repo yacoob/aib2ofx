@@ -119,16 +119,6 @@ class aib:
             self.logger.debug('Using digit number %d of PIN.' % (requested_digit + 1))
             br.form[name] = pin_digit
 
-        name = 'challengeDetails.challengeEntered'
-        c = br.find_control('challengeDetails.challengeEntered')
-        l = c.get_labels()[-1].text
-        if (re.search('work phone', l)):
-            self.logger.debug('Using work number')
-            br.form[name] = logindata['workNumber']
-        else:
-            self.logger.debug('Using home number')
-            br.form[name] = logindata['homeNumber']
-
         self.logger.debug('Submitting second login form.')
         br.submit()
 

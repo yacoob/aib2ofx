@@ -37,20 +37,12 @@ It has a JSON format, single object with one key per AIB login you want to use.
 
     {
         "bradmajors": {
-            "homeNumber": "1234",
-            "workNumber": "1234",
             "regNumber": "12345678",
             "pin": "12345"
         }
     }
 
 The fields are, as follows:
-
-* homeNumber
-    > Last four digits of your home number.
-
-* workNumber
-    > Last four digits of your work number.
 
 * regNumber
     > Your AIB registered number.
@@ -63,14 +55,10 @@ will download data for all accounts for all logins.
 
     {
         "bradmajors": {
-            "homeNumber": "1234",
-            "workNumber": "1234",
             "regNumber": "12345678",
             "pin": "12345"
         },
         "janetweiss": {
-            "homeNumber": "4321",
-            "workNumber": "8765",
             "regNumber": "87654321",
             "pin": "54321"
         }
