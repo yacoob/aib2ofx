@@ -1,22 +1,15 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import cookielib, datetime, exceptions, logging, os, re, tempfile
+import cookielib, datetime, exceptions, logging, os, re, tempfile, time
 
 from BeautifulSoup import BeautifulSoup
+import dateutil.parser as dparser
 import mechanize
 
 def _toDate(text):
-    # AIB format: DD/MM/YY
-    date_chunks = text.strip().split('/')
-    # FIXME: proper year heuristics
-    # the +2000 part is really horrible. Don't try that at home, kids.
-    newdate = datetime.date(
-        int(date_chunks[2], 10) + 2000, # year
-        int(date_chunks[1], 10),        # month
-        int(date_chunks[0], 10)         # day
-    )
-    return newdate
+    # AIB format: Weekday, Nth Month YY
+    return dparser.parse(text)
 
 
 def _toValue(text):
@@ -169,8 +162,6 @@ class aib:
                 self.logger.debug('skipping dubious account %s' % account)
                 continue
 
-            import ipdb; ipdb.set_trace();
-
             # get account's page
             self.logger.debug('Requesting transactions for %s.' % account)
             br.select_form(predicate=_attrEquals('id', 'sForm'))
@@ -181,33 +172,58 @@ class aib:
             # mangle the data
             statement_page = BeautifulSoup(br.response().read(), convertEntities='html')
             acc = self.data[account]
-            table = statement_page.find(
-                'div', {'class': 'trans-column-left'}).find('table')
+
+            # check the account type
+            balance_header = statement_page.find(
+                'ul', {'class': re.compile('summary-panel')}).find(
+                    'strong').renderContents()
+            if 'Last Statement' in balance_header:
+                acc['type'] = 'credit'
+                row_element = 'ul'
+                cell_element = 'li'
+            else:
+                acc['type'] = 'checking'
+                row_element = 'tr'
+                cell_element = 'td'
+
+            # extract the transaction list
+            transactions_box = statement_page.find(
+                'div', {'class': re.compile('trans-column-left')})
             operations = []
             last_operation = None
-
-            if table:
-                num_columns = len(table.tr.findAll('th'))
-                if num_columns == 4:
-                    acc['type'] = 'credit'
-                elif num_columns == 5:
-                    acc['type'] = 'checking'
-                else:
-                    self.logger.debug('unknown number of columns %d, removing account %s from list' %
-                            (num_columns, account))
-                    del self.data[account]
-                    continue
-                for row in table.findAll('tr'):
-                    if not row.td:
+            last_encountered_date = None
+            rows = transactions_box.findAll(row_element)
+            if rows:
+                for row in rows:
+                    if row.find('form'):
+                        print 'skipping control row'
                         continue
-                    cells = row.findAll('td')
+                    if row.has_key('class') and 'top-row' in row['class']:
+                        print 'skipping top row'
+                        continue
+                    if row.has_key('class') and 'date-row' in row['class']:
+                        print 'encountered date row'
+                        last_encountered_date = _toDate(
+                            row.strong.renderContents())
+                        continue
+                    cells = row.findAll(cell_element)
+                    if not len(cells):
+                        print 'skipping empty row'
+                        continue
+                    print 'operating on row: %s' % row
                     operation = {}
-                    operation['timestamp'] = _toDate(cells[0].renderContents())
-                    operation['description'] = cells[1].renderContents()
-                    operation['debit'] = _toValue(cells[2].renderContents())
-                    operation['credit'] = _toValue(cells[3].renderContents())
+                    operation['timestamp'] = last_encountered_date
+                    operation['description'] = cells[0].text
+                    operation['debit'] = operation['credit'] = 0
+                    amount = cells[1].text
+                    if amount:
+                        if amount[0] == '-':
+                            op = 'debit'
+                        else:
+                            op = 'credit'
+                        operation[op] = _toValue(amount[1:])
                     if acc['type'] != 'credit':
-                        operation['balance'] = _toValue(cells[4].renderContents().strip(self.strip_chars))
+                        operation['balance'] = _toValue(cells[3].text)
 
                     if operation['debit'] or operation['credit']:
                         operations.append(operation)
@@ -220,14 +236,12 @@ class aib:
                           last_operation['balance'] = operation['balance']
                     else:
                         last_operation = operation
-
                 if acc['type'] != 'credit':
                     if operations:
                         acc['balance'] = operations[-1]['balance']
                     else:
                         acc['balance'] = acc['available']
                 acc['operations'] = operations
-
             else:
                 self.logger.debug('removing empty account %s from list' % account)
                 del self.data[account]
