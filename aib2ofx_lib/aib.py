@@ -138,14 +138,14 @@ class aib:
 
         # parse totals
         main_page = BeautifulSoup(br.response().read(), convertEntities='html')
-        for div in main_page.findAll('div', 'aibBoxStyle04'):
-            if not div.span:
+        for account_line in main_page.findAll('ul', onclick=re.compile('.+')):
+            if not account_line.span:
                 continue
             account = {}
-            account['accountId'] = div.span.renderContents()
+            account['accountId'] = account_line.span.renderContents()
             account['available'] = _toValue(
-                    div.h3.renderContents().translate(None, '\r\t\n' +
-                        ''.join([chr(i) for i in range(128,256)])))
+                account_line.find('li', {'class': 'balance'}).em.renderContents().translate(
+                    None, '\r\t\n' + ''.join([chr(i) for i in range(128,256)])))
             account['currency'] = 'EUR'
             account['bankId'] = 'AIB'
             account['reportDate'] = datetime.datetime.now()
@@ -163,12 +163,13 @@ class aib:
         accounts_on_page = [m.get_labels()[-1].text for m in account_dropdown.get_items()]
         accounts_in_data = self.data.keys()
 
-        import ipdb; ipdb.set_trace();
 
         for account in accounts_on_page:
             if not account in accounts_in_data:
                 self.logger.debug('skipping dubious account %s' % account)
                 continue
+
+            import ipdb; ipdb.set_trace();
 
             # get account's page
             self.logger.debug('Requesting transactions for %s.' % account)
@@ -180,18 +181,12 @@ class aib:
             # mangle the data
             statement_page = BeautifulSoup(br.response().read(), convertEntities='html')
             acc = self.data[account]
-            header = statement_page.find('div', 'aibStyle07')
-            body = header.findNextSibling('div')
-            table = body.find('table', 'aibtableStyle01')
+            table = statement_page.find(
+                'div', {'class': 'trans-column-left'}).find('table')
             operations = []
             last_operation = None
 
             if table:
-                # single row consists of following <th>s:
-                # Checking:
-                # Date, Description, Debit, Credit, Balance
-                # CCard:
-                # Date, Description, Debit, Credit
                 num_columns = len(table.tr.findAll('th'))
                 if num_columns == 4:
                     acc['type'] = 'credit'
