@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import cookielib, datetime, exceptions, logging, os, re, tempfile, time
+import cookielib, datetime, exceptions, logging, os, re, tempfile
 
 from BeautifulSoup import BeautifulSoup
 import dateutil.parser as dparser
@@ -174,6 +174,8 @@ class aib:
             acc = self.data[account]
 
             # check the account type
+            # Note: the HTML layout of credit card page and normal account have
+            # different structure. Yay for consinstency! :|
             balance_header = statement_page.find(
                 'ul', {'class': re.compile('summary-panel')}).find(
                     'strong').renderContents()
@@ -196,21 +198,20 @@ class aib:
             if rows:
                 for row in rows:
                     if row.find('form'):
-                        print 'skipping control row'
+                        # row with buttons (on cc pages)
                         continue
                     if row.has_key('class') and 'top-row' in row['class']:
-                        print 'skipping top row'
+                        # header
                         continue
                     if row.has_key('class') and 'date-row' in row['class']:
-                        print 'encountered date row'
+                        # each day has its own "header" row
                         last_encountered_date = _toDate(
                             row.strong.renderContents())
                         continue
                     cells = row.findAll(cell_element)
                     if not len(cells):
-                        print 'skipping empty row'
+                        # empty row
                         continue
-                    print 'operating on row: %s' % row
                     operation = {}
                     operation['timestamp'] = last_encountered_date
                     operation['description'] = cells[0].text
@@ -225,17 +226,22 @@ class aib:
                     if acc['type'] != 'credit':
                         operation['balance'] = _toValue(cells[3].text)
 
+                    # add parsed operation if current row was describing one
                     if operation['debit'] or operation['credit']:
                         operations.append(operation)
                         last_operation = operation
                     elif (last_operation and
                           operation['description'] not in self.new_operations and
                           operation['timestamp'] == last_operation['timestamp']):
+                        # continuation rows - no amounts, just description and
+                        # balance
                         last_operation['description'] += ' ' + operation['description']
                         if operation.get('balance') and not last_operation.get('balance'):
                           last_operation['balance'] = operation['balance']
                     else:
                         last_operation = operation
+
+                # add final account balance, if available
                 if acc['type'] != 'credit':
                     if operations:
                         acc['balance'] = operations[-1]['balance']
