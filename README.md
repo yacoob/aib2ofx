@@ -5,24 +5,14 @@ Also supports conversion of pre-downloaded AIB e-statements.
 
 ## Installation
 
-Install required Python modules:
-
-* BeautifulSoup
-* mechanize
-* setuptools
-
-On Ubuntu and Debian systems, run:
-
-    sudo aptitude install python-beautifulsoup python-mechanize python-setuptools
-
 Execute commands:
 
     umask 022
     python setup.py build
     sudo python setup.py install
 
-If that has completed successfully, you should find `aib2ofx` command
-in your Python's `bin` dir.
+All missing dependencies should be installed as well. If that has completed
+successfully, you should find `aib2ofx` command in your Python's `bin` dir.
 
 
 ## How to use
