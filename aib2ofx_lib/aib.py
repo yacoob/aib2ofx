@@ -28,9 +28,6 @@ def _toValue(text):
     else:
         return tmp
 
-def _actionEndsWith(text):
-    return lambda f: f.action.endswith(text)
-
 def _attrEquals(name, text):
     return lambda f: f.attrs.get(name) == text
 
@@ -101,8 +98,8 @@ class aib:
 
         # first stage of login
         self.logger.debug('Requesting first login page.')
-        br.open('https://aibinternetbanking.aib.ie/inet/roi/login.htm')
-        br.select_form(name='form1')
+        br.open('https://onlinebanking.aib.ie/inet/roi/login.htm')
+        br.select_form(name='loginstep1')
         br.set_value(name='regNumber', value=logindata['regNumber'])
         self.logger.debug('Submitting first login form.')
         br.submit()
@@ -136,7 +133,7 @@ class aib:
 
         # make sure we're on the top page
         self.logger.debug('Requesting main page with account listing to grab totals.')
-        br.select_form(predicate=_actionEndsWith('/accountoverview.htm'))
+        br.select_form(predicate=_attrEquals('id', 'accountoverviewPage_form_id'))
         br.submit()
 
         # parse totals
@@ -158,13 +155,15 @@ class aib:
 
         # parse transactions
         self.logger.debug('Switching to transaction listing.')
-        br.select_form(predicate=_actionEndsWith('statement.htm'))
+        br.select_form(predicate=_attrEquals('id', 'statement_form_id'))
         br.submit()
 
-        br.select_form(predicate=_attrEquals('id', 'accountForm'))
+        br.select_form(predicate=_attrEquals('id', 'sForm'))
         account_dropdown = br.find_control(name='index')
         accounts_on_page = [m.get_labels()[-1].text for m in account_dropdown.get_items()]
         accounts_in_data = self.data.keys()
+
+        import ipdb; ipdb.set_trace();
 
         for account in accounts_on_page:
             if not account in accounts_in_data:
@@ -173,7 +172,7 @@ class aib:
 
             # get account's page
             self.logger.debug('Requesting transactions for %s.' % account)
-            br.select_form(predicate=_attrEquals('id', 'accountForm'))
+            br.select_form(predicate=_attrEquals('id', 'sForm'))
             account_dropdown = br.find_control(name='index')
             account_dropdown.set_value_by_label([account])
             br.submit()
@@ -245,6 +244,6 @@ class aib:
     def bye(self, quiet=False):
         self.logger.debug('Logging out.')
         br = self.br
-        br.select_form(predicate=_actionEndsWith('/logout.htm'))
+        br.select_form(predicate=_attrEquals('id', 'formLogout'))
         br.submit()
         # FIXME: check whether we really logged out here
