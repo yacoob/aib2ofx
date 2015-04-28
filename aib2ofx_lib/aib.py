@@ -134,6 +134,11 @@ class aib:
         for account_line in main_page.findAll('ul', onclick=re.compile('.+')):
             if not account_line.span:
                 continue
+
+            # Skip pension accounts
+            if account_line.find('li', {'class': re.compile('i-umbrella')}):
+                continue
+
             account = {}
             account['accountId'] = account_line.span.renderContents()
             account['available'] = _toValue(
