@@ -5,7 +5,12 @@ Also supports conversion of pre-downloaded AIB e-statements.
 
 ## Installation
 
-Execute commands:
+If your `pip` install is new enough, it's sufficient to run this:
+
+    pip install 'git+git://github.com/yacoob/aib2ofx.git@HEAD'
+
+If your `pip` doesn't support installing from VCS sources, or you just want to
+do things the traditional way, execute following commands:
 
     umask 022
     python setup.py build
