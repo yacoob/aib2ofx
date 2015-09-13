@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(name='aib2ofx',
       description='Download data from aib.ie in OFX format',
-      version='0.4',
+      version='0.41',
       author='Jakub Turski',
       author_email='yacoob@gmail.com',
       url='http://github.com/yacoob/aib2ofx',
