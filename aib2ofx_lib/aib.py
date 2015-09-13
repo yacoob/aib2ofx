@@ -131,7 +131,7 @@ class aib:
 
         # parse totals
         main_page = BeautifulSoup(br.response().read(), convertEntities='html')
-        for account_line in main_page.findAll('ul', onclick=re.compile('.+')):
+        for account_line in main_page.findAll('ul', role='button'):
             if not account_line.span:
                 continue
 
