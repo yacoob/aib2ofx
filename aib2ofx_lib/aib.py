@@ -195,7 +195,10 @@ class aib:
                 for tx in txs:
                     op = {}
                     op['timestamp'] = _toDate(tx['Posted Transactions Date'])
-                    op['description'] = tx['Description'].strip()
+                    desc = tx['Description'].strip()
+                    if acc['type'] == 'credit' and len(desc) > 18 and desc[18] == ' ':
+                        desc = desc[:18] + desc[19:]
+                    op['description'] = desc
                     op['debit'] = _toValue(tx['Debit Amount'])
                     op['credit'] = _toValue(tx['Credit Amount'])
                     operations.append(op)
