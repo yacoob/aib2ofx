@@ -100,7 +100,7 @@ NEWFILEUID:NONE
         for transaction in data['operations']:
             t = transaction.copy()
             t['description'] = escape(t['description'])
-            if t['credit']:
+            if len(t['credit']) > 0 and float(t['credit']) != 0:
                 t['type'] = 'CREDIT'
                 t['amount'] = t['credit']
             else:

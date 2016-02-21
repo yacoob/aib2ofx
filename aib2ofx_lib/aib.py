@@ -8,8 +8,8 @@ import dateutil.parser as dparser
 import mechanize
 
 def _toDate(text):
-    # AIB format: Weekday, Nth Month YY
-    return dparser.parse(text)
+    # AIB CSV export format: DD/MM/YYYY
+    return dparser.parse(text, dayfirst=True, yearfirst=False)
 
 
 def _toValue(text):
@@ -162,9 +162,10 @@ class aib:
         accounts_in_data = self.data.keys()
 
 
-        for account in accounts_on_page:
-            if not account in accounts_in_data:
+        for account in accounts_in_data:
+            if not account in accounts_on_page:
                 self.logger.debug('skipping account %s which is absent on historical transactions page' % account)
+                del self.data[account]
                 continue
 
             # get account's page
@@ -193,16 +194,14 @@ class aib:
                 operations = []
                 for tx in txs:
                     op = {}
-                    op['timestamp'] = tx['Posted Transactions Date']
-                    op['description'] = tx['Description']
-                    op['debit'] =  tx['Debit Amount']
-                    op['credit'] = tx['Credit Amount']
+                    op['timestamp'] = _toDate(tx['Posted Transactions Date'])
+                    op['description'] = tx['Description'].strip()
+                    op['debit'] = _toValue(tx['Debit Amount'])
+                    op['credit'] = _toValue(tx['Credit Amount'])
                     operations.append(op)
-                self.data[account]['operations'] = operations
-                import ipdb; ipdb.set_trace()
+                acc['operations'] = operations
             else:
-                self.logger.debug('no transactions parsed for account %s'
-                        % account)
+                self.logger.debug('no transactions parsed for account %s' % account)
                 del self.data[account]
 
             # go back to the list of accounts
