@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import cookielib, datetime, exceptions, logging, os, re, tempfile
+import cookielib, csv, datetime, exceptions, logging, os, re, tempfile
 
 from BeautifulSoup import BeautifulSoup
 import dateutil.parser as dparser
@@ -181,8 +181,29 @@ class aib:
             # confirm the export request
             br.select_form(predicate=_attrEquals('id', 'historicalTransactionsCommand'))
             response = br.open_novisit(br.click())
-            csv_data = response.read()
-            self.data[account]['csv_data'] = csv_data
+            csv_data = csv.DictReader(response, skipinitialspace=True)
+            txs = [tx for tx in csv_data]
+            if len(txs):
+                acc = self.data[account]
+                if 'Masked Card Number' in txs[0]:
+                    acc['type'] = 'credit'
+                else:
+                    acc['type'] = 'checking'
+                    acc['balance'] = txs[-1]['Balance']
+                operations = []
+                for tx in txs:
+                    op = {}
+                    op['timestamp'] = tx['Posted Transactions Date']
+                    op['description'] = tx['Description']
+                    op['debit'] =  tx['Debit Amount']
+                    op['credit'] = tx['Credit Amount']
+                    operations.append(op)
+                self.data[account]['operations'] = operations
+                import ipdb; ipdb.set_trace()
+            else:
+                self.logger.debug('no transactions parsed for account %s'
+                        % account)
+                del self.data[account]
 
             # go back to the list of accounts
             br.select_form(predicate=_attrEquals('id', 'historicaltransactions_form_id'))
