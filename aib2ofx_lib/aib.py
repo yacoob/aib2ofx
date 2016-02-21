@@ -153,109 +153,41 @@ class aib:
 
         # parse transactions
         self.logger.debug('Switching to transaction listing.')
-        br.select_form(predicate=_attrEquals('id', 'statement_form_id'))
+        br.select_form(predicate=_attrEquals('id', 'historicalstatement_form_id'))
         br.submit()
 
-        br.select_form(predicate=_attrEquals('id', 'sForm'))
-        account_dropdown = br.find_control(name='index')
+        br.select_form(predicate=_attrEquals('id', 'hForm'))
+        account_dropdown = br.find_control(name='dsAccountIndex')
         accounts_on_page = [m.get_labels()[-1].text for m in account_dropdown.get_items()]
         accounts_in_data = self.data.keys()
 
 
         for account in accounts_on_page:
             if not account in accounts_in_data:
-                self.logger.debug('skipping dubious account %s' % account)
+                self.logger.debug('skipping account %s which is absent on historical transactions page' % account)
                 continue
 
             # get account's page
             self.logger.debug('Requesting transactions for %s.' % account)
-            br.select_form(predicate=_attrEquals('id', 'sForm'))
-            account_dropdown = br.find_control(name='index')
+            br.select_form(predicate=_attrEquals('id', 'hForm'))
+            account_dropdown = br.find_control(name='dsAccountIndex')
             account_dropdown.set_value_by_label([account])
             br.submit()
 
-            # mangle the data
-            statement_page = BeautifulSoup(br.response().read(), convertEntities='html')
-            acc = self.data[account]
+            # click the export button
+            br.select_form(predicate=_attrEquals('id', 'historicalTransactionsCommand'))
+            br.submit()
 
-            # check the account type
-            # Note: the HTML layout of credit card page and normal account have
-            # different structure. Yay for consinstency! :|
-            balance_header = statement_page.find(
-                'ul', {'class': re.compile('summary-panel')}).find(
-                    'strong').renderContents()
-            if 'Last Statement' in balance_header:
-                acc['type'] = 'credit'
-                row_element = 'ul'
-                cell_element = 'li'
-            else:
-                acc['type'] = 'checking'
-                row_element = 'tr'
-                cell_element = 'td'
+            # confirm the export request
+            br.select_form(predicate=_attrEquals('id', 'historicalTransactionsCommand'))
+            response = br.open_novisit(br.click())
+            csv_data = response.read()
+            self.data[account]['csv_data'] = csv_data
 
-            # extract the transaction list
-            transactions_box = statement_page.find(
-                'div', {'class': re.compile('trans-column-left')})
-            operations = []
-            last_operation = None
-            last_encountered_date = None
-            rows = transactions_box.findAll(row_element)
-            if rows:
-                for row in rows:
-                    if row.find('form'):
-                        # row with buttons (on cc pages)
-                        continue
-                    if row.has_key('class') and 'top-row' in row['class']:
-                        # header
-                        continue
-                    if row.has_key('class') and 'date-row' in row['class']:
-                        # each day has its own "header" row
-                        last_encountered_date = _toDate(
-                            row.strong.renderContents())
-                        continue
-                    cells = row.findAll(cell_element)
-                    if not len(cells):
-                        # empty row
-                        continue
-                    operation = {}
-                    operation['timestamp'] = last_encountered_date
-                    operation['description'] = cells[0].text
-                    operation['debit'] = operation['credit'] = 0
-                    amount = cells[1].text
-                    if amount:
-                        if amount[0] == '-':
-                            op = 'debit'
-                        else:
-                            op = 'credit'
-                        operation[op] = _toValue(amount[1:])
-                    if acc['type'] != 'credit':
-                        operation['balance'] = _toValue(cells[3].text)
+            # go back to the list of accounts
+            br.select_form(predicate=_attrEquals('id', 'historicaltransactions_form_id'))
+            br.submit()
 
-                    # add parsed operation if current row was describing one
-                    if operation['debit'] or operation['credit']:
-                        operations.append(operation)
-                        last_operation = operation
-                    elif (last_operation and
-                          operation['description'] not in self.new_operations and
-                          operation['timestamp'] == last_operation['timestamp']):
-                        # continuation rows - no amounts, just description and
-                        # balance
-                        last_operation['description'] += ' ' + operation['description']
-                        if operation.get('balance') and not last_operation.get('balance'):
-                          last_operation['balance'] = operation['balance']
-                    else:
-                        last_operation = operation
-
-                # add final account balance, if available
-                if acc['type'] != 'credit':
-                    if operations:
-                        acc['balance'] = operations[-1]['balance']
-                    else:
-                        acc['balance'] = acc['available']
-                acc['operations'] = operations
-            else:
-                self.logger.debug('removing empty account %s from list' % account)
-                del self.data[account]
 
 
     def getdata(self):
