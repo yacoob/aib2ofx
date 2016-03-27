@@ -92,13 +92,13 @@ class aib:
         # first stage of login
         self.logger.debug('Requesting first login page.')
         br.open('https://onlinebanking.aib.ie/inet/roi/login.htm')
-        br.select_form(name='loginstep1')
+        br.select_form(name='loginstep1Form')
         br.set_value(name='regNumber', value=logindata['regNumber'])
         self.logger.debug('Submitting first login form.')
         br.submit()
 
         # second stage of login
-        br.select_form(name='loginstep2')
+        br.select_form(name='loginstep2Form')
 
         for i in [1, 2, 3]:
             name = 'pacDetails.pacDigit' + str(i)
