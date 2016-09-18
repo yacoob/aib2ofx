@@ -112,6 +112,10 @@ class aib:
         self.logger.debug('Submitting second login form.')
         br.submit()
 
+        # FIXME: remove this once the logo interstitial is gone
+        br.select_form(nr=1)
+        br.submit()
+
         # mark login as done
         # FIXME: should really check whether we succesfully logged in here
         self.login_done = True
