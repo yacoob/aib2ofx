@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import StringIO
 import cookielib, csv, datetime, exceptions, logging, os, re, tempfile
 
 from BeautifulSoup import BeautifulSoup
@@ -182,7 +183,25 @@ class aib:
             # confirm the export request
             br.select_form(predicate=_attrEquals('id', 'historicalTransactionsCommand'))
             response = br.open_novisit(br.click())
-            csv_data = csv.DictReader(response, skipinitialspace=True)
+            # AIB currently exports wrong headers for the credit card exports,
+            # so we need to override them. Problem is, we don't know the type of
+            # the account, and headers are different per account type.
+            #
+            # This is so ugly :(
+            content = response.readlines()
+            if 'Masked Card Number' in content[0]:
+                fieldnames = [
+                    'Masked Card Number', 'Posted Transactions Date',
+                    'Description1', 'Description2', 'Description3',
+                    'Debit Amount', 'Credit Amount', 'Posted Currency',
+                    'Transaction Type', 'Local Currency Amount',
+                    'Local Currency'
+                ]
+                content = content[2:]
+            else:
+                fieldnames = None
+            response = StringIO.StringIO(''.join(content))
+            csv_data = csv.DictReader(response, fieldnames=fieldnames, skipinitialspace=True)
             txs = [tx for tx in csv_data]
             if len(txs):
                 acc = self.data[account]
