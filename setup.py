@@ -8,9 +8,15 @@ setup(name='aib2ofx',
       author='Jakub Turski',
       author_email='yacoob@gmail.com',
       url='http://github.com/yacoob/aib2ofx',
-
-      install_requires=['BeautifulSoup>=3.2.0', 'mechanize', 'python-dateutil'],
-
-      packages=['aib2ofx_lib'],
-      scripts=['aib2ofx'],
-     );
+      packages=['aib2ofx'],
+      entry_points={
+          'console_scripts': [
+              'aib2ofx = aib2ofx.main:main'
+          ],
+      },
+      install_requires=[
+          'BeautifulSoup>=3.2.0',
+          'mechanize',
+          'python-dateutil'
+      ],
+ );

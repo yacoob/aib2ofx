@@ -3,7 +3,7 @@
 
 import codecs, datetime, errno, optparse, os, re, sys
 
-from aib2ofx_lib import aib, cfg, ofx, pdfparse
+from aib2ofx import aib, cfg, ofx, pdfparse
 
 
 def getOptions():
