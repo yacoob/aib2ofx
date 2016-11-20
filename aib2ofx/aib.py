@@ -195,12 +195,10 @@ class aib:
                 for tx in txs:
                     op = {}
                     op['timestamp'] = _toDate(tx['Posted Transactions Date'])
-                    if acc['type'] == 'credit':
-                        desc = tx['Description']
-                    else:
-                        desc = ''
-                        for i in [1,2,3]:
-                            desc += tx['Description%s' % i].strip()
+                    desc = []
+                    for i in [1,2,3]:
+                        desc.append(tx['Description%s' % i].strip())
+                    desc = ' '.join(filter(bool, desc))
                     if acc['type'] == 'credit' and len(desc) > 18 and desc[18] == ' ':
                         desc = desc[:18] + desc[19:]
                     op['description'] = desc
