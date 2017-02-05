@@ -66,6 +66,8 @@ def getData(user, config, output_dir, formatter, chatter):
 
     # Save each account to separate OFX file.
     for account in bank.getdata().values():
+        if not account:
+            continue
         name = re.sub(cleanup_re,
                       '_',
                       account['accountId']).lower()

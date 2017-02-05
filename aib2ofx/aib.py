@@ -26,6 +26,34 @@ def _attrEquals(name, text):
     return lambda f: f.attrs.get(name) == text
 
 
+def _csv2account(csv_data, acc):
+    txs = [tx for tx in csv_data]
+    if len(txs) == 0:
+        self.logger.debug('no transactions parsed for account %s' % account)
+        return None
+    if 'Masked Card Number' in txs[0]:
+        acc['type'] = 'credit'
+    else:
+        acc['type'] = 'checking'
+        acc['balance'] = txs[-1]['Balance']
+    operations = []
+    for tx in txs:
+        op = {}
+        op['timestamp'] = _toDate(tx['Posted Transactions Date'])
+        desc = []
+        for i in [1,2,3]:
+            desc.append(tx['Description%s' % i].strip())
+        desc = ' '.join(filter(bool, desc))
+        if acc['type'] == 'credit' and len(desc) > 18 and desc[18] == ' ':
+            desc = desc[:18] + desc[19:]
+        op['description'] = desc
+        op['debit'] = _toValue(tx['Debit Amount'])
+        op['credit'] = _toValue(tx['Credit Amount'])
+        operations.append(op)
+    acc['operations'] = operations
+    return acc
+
+
 class CleansingFormatter(logging.Formatter):
     def __init__(self, fmt=None, datefmt=None):
         self.amount_re = re.compile('(?:\d+,)*\d+\.\d+(?: DR)?')
@@ -183,56 +211,12 @@ class aib:
             # confirm the export request
             br.select_form(predicate=_attrEquals('id', 'historicalTransactionsCommand'))
             response = br.open_novisit(br.click())
-            # AIB currently exports wrong headers for the credit card exports,
-            # so we need to override them. Problem is, we don't know the type of
-            # the account, and headers are different per account type.
-            #
-            # This is so ugly :(
-            content = response.readlines()
-            if 'Masked Card Number' in content[0]:
-                fieldnames = [
-                    'Masked Card Number', 'Posted Transactions Date',
-                    'Description1', 'Description2', 'Description3',
-                    'Debit Amount', 'Credit Amount', 'Posted Currency',
-                    'Transaction Type', 'Local Currency Amount',
-                    'Local Currency'
-                ]
-                content = content[2:]
-            else:
-                fieldnames = None
-            response = StringIO.StringIO(''.join(content))
-            csv_data = csv.DictReader(response, fieldnames=fieldnames, skipinitialspace=True)
-            txs = [tx for tx in csv_data]
-            if len(txs):
-                acc = self.data[account]
-                if 'Masked Card Number' in txs[0]:
-                    acc['type'] = 'credit'
-                else:
-                    acc['type'] = 'checking'
-                    acc['balance'] = txs[-1]['Balance']
-                operations = []
-                for tx in txs:
-                    op = {}
-                    op['timestamp'] = _toDate(tx['Posted Transactions Date'])
-                    desc = []
-                    for i in [1,2,3]:
-                        desc.append(tx['Description%s' % i].strip())
-                    desc = ' '.join(filter(bool, desc))
-                    if acc['type'] == 'credit' and len(desc) > 18 and desc[18] == ' ':
-                        desc = desc[:18] + desc[19:]
-                    op['description'] = desc
-                    op['debit'] = _toValue(tx['Debit Amount'])
-                    op['credit'] = _toValue(tx['Credit Amount'])
-                    operations.append(op)
-                acc['operations'] = operations
-            else:
-                self.logger.debug('no transactions parsed for account %s' % account)
-                del self.data[account]
+            csv_data = csv.DictReader(response, skipinitialspace=True)
+            self.data[account] = _csv2account(csv_data, self.data[account])
 
             # go back to the list of accounts
             br.select_form(predicate=_attrEquals('id', 'historicaltransactions_form_id'))
             br.submit()
-
 
 
     def getdata(self):
