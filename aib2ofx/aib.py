@@ -29,7 +29,6 @@ def _attrEquals(name, text):
 def _csv2account(csv_data, acc):
     txs = [tx for tx in csv_data]
     if len(txs) == 0:
-        self.logger.debug('no transactions parsed for account %s' % account)
         return None
     if 'Masked Card Number' in txs[0]:
         acc['type'] = 'credit'
@@ -40,12 +39,18 @@ def _csv2account(csv_data, acc):
     for tx in txs:
         op = {}
         op['timestamp'] = _toDate(tx['Posted Transactions Date'])
-        desc = []
-        for i in [1,2,3]:
-            desc.append(tx['Description%s' % i].strip())
-        desc = ' '.join(filter(bool, desc))
-        if acc['type'] == 'credit' and len(desc) > 18 and desc[18] == ' ':
-            desc = desc[:18] + desc[19:]
+        # The mysterious story of 'Description' field in CSV exports continues!
+        # Now the columns differ between CC and current account, on top of the
+        # implemented bugs :(
+        if acc['type'] == 'credit':
+            desc = tx['Description']
+            if len(desc) > 18 and desc[18] == ' ':
+                desc = desc[:18] + desc[19:]
+        else:
+            d = []
+            for i in [1,2,3]:
+                d.append(tx['Description%s' % i].strip())
+            desc = ' '.join(filter(bool, d))
         op['description'] = desc
         op['debit'] = _toValue(tx['Debit Amount'])
         op['credit'] = _toValue(tx['Credit Amount'])
@@ -164,8 +169,8 @@ class aib:
             if not account_line.span:
                 continue
 
-            # Skip pension accounts
-            if account_line.find('li', {'class': re.compile('i-umbrella')}):
+            # Skip pension and saving accounts
+            if account_line.find('li', {'class': re.compile('i-(umbrella|savings)')}):
                 continue
 
             account = {}
@@ -181,6 +186,11 @@ class aib:
 
 
         # parse transactions
+        #
+        # Note: As of January 2017 there are *two* places that produce CSV data
+        # for an account - 'Historical transactions' and 'Recent transactions'.
+        # The latter covers shorter period of time, so we use the former. Both
+        # exports differ in the type and amount of fields they export. :(
         self.logger.debug('Switching to transaction listing.')
         br.select_form(predicate=_attrEquals('id', 'historicalstatement_form_id'))
         br.submit()
