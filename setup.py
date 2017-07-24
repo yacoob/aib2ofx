@@ -16,7 +16,7 @@ setup(name='aib2ofx',
       },
       install_requires=[
           'BeautifulSoup>=3.2.0',
-          'mechanize',
+          'mechanize==0.2.5',
           'python-dateutil'
       ],
  );
