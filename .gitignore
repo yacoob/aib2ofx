@@ -4,3 +4,5 @@ bla.ofx
 build/
 dist/
 aib2ofx.egg-info/
+Pipfile*
+.venv/
