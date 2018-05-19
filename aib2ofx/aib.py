@@ -169,18 +169,20 @@ class aib:
 
         # parse totals
         main_page = BeautifulSoup(br.response().read(), convertEntities='html')
-        for account_line in main_page.findAll('ul', role='button'):
-            if not account_line.span:
+        for account_line in main_page.findAll(
+                'button', attrs={'class': 'account-button'}):
+            if not account_line.dt:
                 continue
 
             # Skip pension and saving accounts
-            if account_line.find('li', {'class': re.compile('i-(umbrella|savings)')}):
+            if account_line.find(text=re.compile('SAVINGS')):
                 continue
 
             account = {}
-            account['accountId'] = account_line.span.renderContents()
+            account['accountId'] = account_line.dt.renderContents().translate(
+                    None,'\r\t\n').strip()
             account['available'] = _toValue(
-                account_line.find('li', {'class': 'balance'}).em.renderContents().translate(
+                account_line.find('span', {'class': re.compile('.*a-amount.*')}).renderContents().translate(
                     None, '\r\t\n' + ''.join([chr(i) for i in range(128,256)])))
             account['currency'] = 'EUR'
             account['bankId'] = 'AIB'
