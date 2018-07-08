@@ -96,6 +96,7 @@ NEWFILEUID:NONE
             data['lastDate'] = data['reportDate']
 
         # Turn set of transactions into a lengthy string.
+        hashes = {}
         transactions = []
         for transaction in data['operations']:
             t = transaction.copy()
@@ -107,7 +108,17 @@ NEWFILEUID:NONE
                 t['type'] = 'DEBIT'
                 t['amount'] = '-%s' % t['debit']
             t['timestamp'] = _toDate(t['timestamp'])
-            t['tid'] = sha256(t['timestamp'].encode("utf-8") + t['amount'].encode("utf-8") + t['description'].encode("utf-8")).hexdigest()
+            h = sha256(t['timestamp'].encode("utf-8") + t['amount'].encode("utf-8") + t['description'].encode("utf-8"))
+            hd = h.hexdigest()
+            # If there's been a transaction with identical hash in the current
+            # set, record this and modify the hash to be different in OFX.
+            if hd in hashes:
+                n = hashes[hd] + 1
+                hashes[hd] = n
+                h.update(str(n))
+            else:
+                hashes[hd] = 1
+            t['tid'] = h.hexdigest()
             transactions.append(self.single_transaction % t)
 
         data['transactions'] = '\n'.join(transactions)
