@@ -34,7 +34,7 @@ def _csv2account(csv_data, acc):
         acc['type'] = 'credit'
     else:
         acc['type'] = 'checking'
-        acc['balance'] = txs[-1]['Balance']
+        acc['balance'] = txs[-1].get('Balance', 0);
     operations = []
     for tx in txs:
         op = {}
@@ -222,6 +222,12 @@ class aib:
 
             # click the export button
             br.select_form(predicate=_attrEquals('id', 'historicalTransactionsCommand'))
+            # Some accounts (eg. freshly opened ones) have export facility
+            # disabled. Skip them.
+            if br.find_control(name='export').attrs.get('value') == 'false':
+                self.logger.debug('skipping account %s which has its "Export" button disabled' % account)
+                del self.data[account]
+                continue
             br.submit()
 
             # confirm the export request
