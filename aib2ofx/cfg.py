@@ -5,7 +5,7 @@ import json, os, re
 
 
 class config:
-    def __init__(self, config_filename='~/.aib-sucker'):
+    def __init__(self, config_filename='~/.aib2ofx.json'):
         fp = open(os.path.expanduser(config_filename))
         config_string = fp.read(-1)
         fp.close()

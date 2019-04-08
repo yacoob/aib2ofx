@@ -1,32 +1,22 @@
 # aib2ofx
-...or how to suck data out of AIB's online interface, and format it into `OFX` file.
-Also supports conversion of pre-downloaded AIB e-statements.
-
+...or how to grab transaction data out of AIB's online interface, and format it
+into `OFX` file.
 
 ## Installation
 
-If your `pip` install is new enough, it's sufficient to run this:
+    pipenv --two install 'git+git://github.com/yacoob/aib2ofx.git@master#egg=aib2ofx'
 
-    pip install 'git+git://github.com/yacoob/aib2ofx.git@HEAD'
+This will create a virtualenv for `aib2ofx`, fetch its code then install it with
+all dependencies. Once that completes, you'll find `aib2ofx` executable in the
+`bin` directory of this new virtualenv.
 
-If your `pip` doesn't support installing from VCS sources, or you just want to
-do things the traditional way, execute following commands:
+## Usage
 
-    umask 022
-    python setup.py build
-    sudo python setup.py install
-
-All missing dependencies should be installed as well. If that has completed
-successfully, you should find `aib2ofx` command in your Python's `bin` dir.
-
-
-## How to use
-
-Create a `~/.aib-sucker` file, with AIB login details.
+Create a `~/.aib2ofx.json` file, with AIB login details.
 Set the permission bits to 0600 to prevent other system users from reading it.
 
-    touch ~/.aib-sucker
-    chmod 0600 ~/.aib-sucker
+    touch ~/.aib2ofx.json
+    chmod 0600 ~/.aib2ofx.json
 
 It has a JSON format, single object with one key per AIB login you want to use.
 
@@ -37,7 +27,7 @@ It has a JSON format, single object with one key per AIB login you want to use.
         }
     }
 
-The fields are, as follows:
+The fields are as follows:
 
 * regNumber
     > Your AIB registered number.
