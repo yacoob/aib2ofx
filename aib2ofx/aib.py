@@ -6,7 +6,7 @@ import cookielib, csv, datetime, exceptions, logging, os, re, tempfile
 
 from BeautifulSoup import BeautifulSoup
 import dateutil.parser as dparser
-import mechanize
+import mechanicalsoup
 
 def _toDate(text):
     # AIB CSV export format: DD/MM/YYYY
@@ -81,21 +81,10 @@ class aib:
 
     def __init__(self, logindata, chatter):
         self.logindata = logindata
-        factory = mechanize.DefaultFactory()
-        factory._forms_factory = mechanize.FormsFactory(form_parser_class=mechanize.XHTMLCompatibleFormParser)
-        self.br = mechanize.Browser(factory=factory)
+        self.br = mechanicalsoup.StatefulBrowser()
         self.quiet = chatter['quiet']
         self.debug = chatter['debug']
         br = self.br
-        cj = cookielib.LWPCookieJar()
-        br.set_cookiejar(cj)
-
-        br.set_handle_equiv(True)
-        #br.set_handle_gzip(True)
-        br.set_handle_redirect(True)
-        br.set_handle_referer(True)
-        br.set_handle_robots(False)
-        br.set_handle_refresh(mechanize._http.HTTPRefreshProcessor(), max_time=1)
 
         if self.debug:
             # make a directory for debugging output
@@ -108,13 +97,13 @@ class aib:
             self.logger.addHandler(fh)
             self.logger.setLevel(logging.DEBUG)
 
-            br.set_debug_redirects(True)
-            br.set_debug_responses(True)
+            # FIXME: better logging for page *content*
+            # br.set_debug_redirects(True)
+            # br.set_debug_responses(True)
         else:
             logging.disable(logging.DEBUG)
             self.logger = logging.getLogger(None)
 
-        br.addheaders = [('User-agent', 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1')]
         self.login_done = False
         self.data = {}
 
@@ -123,36 +112,39 @@ class aib:
         br = self.br
         logindata = self.logindata
 
-        # first stage of login
+        # first stage of login - registration number
         self.logger.debug('Requesting first login page.')
         br.open('https://onlinebanking.aib.ie/inet/roi/login.htm')
-        br.select_form(name='loginstep1Form')
-        br.set_value(name='regNumber', value=logindata['regNumber'])
+        br.select_form(selector='#loginstep1Form')
+        br['regNumber'] = logindata['regNumber']
         self.logger.debug('Submitting first login form.')
-        br.submit()
+        br.submit_selected()
 
-        # second stage of login
-        br.select_form(name='loginstep2Form')
-
-        for i in [1, 2, 3]:
-            name = 'pacDetails.pacDigit' + str(i)
-            c = br.find_control(name=name)
-            l = c.get_labels()[-1].text
-            requested_digit = int(l[-1]) - 1
+        # second stage of login - selected pin digits
+        br.select_form(selector='#loginstep2Form')
+        labels = br.get_current_page().select('label[for^=digit]')
+        for idx, label in enumerate(labels):
+            requested_digit = int(label.text[-2]) - 1
             pin_digit = logindata['pin'][requested_digit]
+            field_name = 'pacDetails.pacDigit' + str(idx+1)
             self.logger.debug('Using digit number %d of PIN.' % (requested_digit + 1))
-            br.form[name] = pin_digit
-
+            br[field_name] = pin_digit
         self.logger.debug('Submitting second login form.')
-        br.submit()
+        br.submit_selected()
 
-        # interstital
-        br.select_form(nr=1)
-        br.submit()
+        # skip potential interstitial by clicking on 'my messages'
+        br.select_form('#mail_l_form_id')
+        self.logger.debug('Going to messages, navigating around potential interstitial.')
+        br.submit_selected()
+
+        # go to the main page
+        br.select_form('#accountoverviewPage_form_id')
+        self.logger.debug('Navigating to main page.')
+        br.submit_selected()
 
         # mark login as done
-        # FIXME: should really check whether we succesfully logged in here
-        self.login_done = True
+        if br.get_current_page().find(string='My Accounts'):
+            self.login_done = True
 
 
     def scrape(self, quiet=False):
@@ -161,11 +153,6 @@ class aib:
 
         br = self.br
         self.data = {}
-
-        # make sure we're on the top page
-        self.logger.debug('Requesting main page with account listing to grab totals.')
-        br.select_form(predicate=_attrEquals('id', 'accountoverviewPage_form_id'))
-        br.submit()
 
         # parse totals
         main_page = BeautifulSoup(br.response().read(), convertEntities='html')
