@@ -59,12 +59,6 @@ The script should connect to AIB, log in using provided credentials,
 iterate through all accounts, and save each of those to a separate
 file located in `/output/directory`.
 
-To convert AIB PDF e-statements, download the statements from online banking and
-put them in a directory of your choice.
-Then run:
-
-    aib2ofx -d /output/directory -p /pdf/statement/directory
-
 ## Guarantee
 
 There is none.

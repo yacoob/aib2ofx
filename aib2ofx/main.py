@@ -3,7 +3,7 @@
 
 import codecs, datetime, errno, optparse, os, re, sys
 
-from aib2ofx import aib, cfg, ofx, pdfparse
+from aib2ofx import aib, cfg, ofx
 
 
 def getOptions():
@@ -20,10 +20,6 @@ def getOptions():
         optparse.make_option(
             '-q', '--quiet', action='store_true',
             dest='quiet_mode', help='display no output at all [False]'
-        ),
-        optparse.make_option(
-            '-p', '--pdfstatement-dir',
-            dest='pdfstatement_dir', help='directory location of pdf statements'
         ),
     ]
     parser.add_options(option_list)
@@ -92,18 +88,10 @@ def main():
         if exception.errno != errno.EEXIST:
             raise
 
-    if options.pdfstatement_dir:
-        pdfparser = pdfparse.PdfParse(options.pdfstatement_dir)
-        user = config.users()[0]
-        data = pdfparser.getData()
-        for d in data:
-            accountId = d['accountId'] + "_" + d['reportDate'].strftime('%Y%m%d')
-            writeFile(d, options.output_dir, user, accountId, formatter)
-    else:
-        # Iterate through accounts, scrape, format and save data.
-        for user in config.users():
-            getData(user, config, options.output_dir, formatter,
-                    chatter)
+    # Iterate through accounts, scrape, format and save data.
+    for user in config.users():
+        getData(user, config, options.output_dir, formatter,
+                chatter)
 
 
 if __name__ == '__main__':
