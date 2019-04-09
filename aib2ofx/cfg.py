@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+"""Configuration file handling for aib2ofx."""
 # coding: utf-8
 
 import json
@@ -6,11 +6,13 @@ import os
 import re
 
 
-class config:
+class Config(object):
+    """Simple dictionary-like config object."""
+
     def __init__(self, config_filename='~/.aib2ofx.json'):
-        fp = open(os.path.expanduser(config_filename))
-        config_string = fp.read(-1)
-        fp.close()
+        filepath = open(os.path.expanduser(config_filename))
+        config_string = filepath.read(-1)
+        filepath.close()
 
         # Kill trailing commas.
         trailing_commas = re.compile(r',\s*([\]}])')
@@ -18,9 +20,11 @@ class config:
         self.cfg = json.loads(config_string)
 
     def get_config(self):
+        """Returns the entire config object."""
         return self.cfg
 
     def users(self):
+        """Returns list of configured users."""
         return self.cfg.keys()
 
     def __getitem__(self, name):
