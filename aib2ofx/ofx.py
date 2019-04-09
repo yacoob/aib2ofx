@@ -33,7 +33,8 @@ NEWFILEUID:NONE
 </SIGNONMSGSRSV1>"""
 
         self.headers = {
-            'checking': """
+            'checking':
+            """
 <BANKMSGSRSV1>
 <STMTTRNRS><TRNUID>1</TRNUID>
 <STATUS><CODE>0</CODE><SEVERITY>INFO</SEVERITY></STATUS>
@@ -42,7 +43,8 @@ NEWFILEUID:NONE
 <ACCTID>%(accountId)s</ACCTID>
 <ACCTTYPE>CHECKING</ACCTTYPE>
 </BANKACCTFROM>""",
-            'credit': """
+            'credit':
+            """
 <CREDITCARDMSGSRSV1>
 <CCSTMTTRNRS><TRNUID>1</TRNUID>
 <STATUS><CODE>0</CODE><SEVERITY>INFO</SEVERITY></STATUS>
@@ -50,7 +52,7 @@ NEWFILEUID:NONE
 <CCACCTFROM>
 <ACCTID>%(accountId)s</ACCTID>
 </CCACCTFROM>""",
-            }
+        }
 
         self.transactions = """
 <BANKTRANLIST>
@@ -60,14 +62,16 @@ NEWFILEUID:NONE
 </BANKTRANLIST>"""
 
         self.closing = {
-            'checking': """
+            'checking':
+            """
 <LEDGERBAL><BALAMT>%(balance)s</BALAMT><DTASOF>%(reportDate)s</DTASOF></LEDGERBAL>
 <AVAILBAL><BALAMT>%(available)s</BALAMT><DTASOF>%(reportDate)s</DTASOF></AVAILBAL>
 </STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>""",
-            'credit': """
+            'credit':
+            """
 <LEDGERBAL><BALAMT>%(available)s</BALAMT><DTASOF>%(reportDate)s</DTASOF></LEDGERBAL>
 </CCSTMTRS></CCSTMTTRNRS></CREDITCARDMSGSRSV1></OFX>""",
-            }
+        }
 
         self.single_transaction = """<STMTTRN>
 <TRNTYPE>%(type)s</TRNTYPE>
@@ -77,7 +81,6 @@ NEWFILEUID:NONE
 <NAME>%(description)s</NAME>
 </STMTTRN>
 """
-
 
     def prettyprint(self, input):
         ofx = ''
@@ -101,14 +104,16 @@ NEWFILEUID:NONE
         for transaction in data['operations']:
             t = transaction.copy()
             t['description'] = escape(t['description'])
-            if len(t['credit']) > 0 and float(t['credit']) != 0:
+            if t['credit'] and float(t['credit']) != 0:
                 t['type'] = 'CREDIT'
                 t['amount'] = t['credit']
             else:
                 t['type'] = 'DEBIT'
                 t['amount'] = '-%s' % t['debit']
             t['timestamp'] = _toDate(t['timestamp'])
-            h = sha256(t['timestamp'].encode("utf-8") + t['amount'].encode("utf-8") + t['description'].encode("utf-8"))
+            h = sha256(t['timestamp'].encode("utf-8") +
+                       t['amount'].encode("utf-8") +
+                       t['description'].encode("utf-8"))
             hd = h.hexdigest()
             # If there's been a transaction with identical hash in the current
             # set, record this and modify the hash to be different in OFX.
@@ -124,10 +129,8 @@ NEWFILEUID:NONE
         data['transactions'] = '\n'.join(transactions)
 
         # Wrap up and return resulting OFX.
-        ofx = '\n'.join((self.opening,
-                        self.headers[data['type']],
-                        self.transactions,
-                        self.closing[data['type']]))
+        ofx = '\n'.join((self.opening, self.headers[data['type']],
+                         self.transactions, self.closing[data['type']]))
         ofx = ofx % data
 
         return ofx

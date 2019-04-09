@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import json, os, re
+import json
+import os
+import re
 
 
 class config:
@@ -11,21 +13,18 @@ class config:
         fp.close()
 
         # Kill trailing commas.
-        trailing_commas = re.compile(',\s*([\]}])')
-        config_string = trailing_commas.sub('\g<1>', config_string)
+        trailing_commas = re.compile(r',\s*([\]}])')
+        config_string = trailing_commas.sub(r'\g<1>', config_string)
         self.cfg = json.loads(config_string)
-
 
     def get_config(self):
         return self.cfg
 
-
     def users(self):
         return self.cfg.keys()
 
-
     def __getitem__(self, name):
-        if self.cfg.has_key(name):
+        if name in self.cfg:
             return self.cfg[name]
         else:
             raise AttributeError
