@@ -1,8 +1,5 @@
-main*
-statement*
-bla.ofx
+2???-??-??/
+.venv/
+aib2ofx.egg-info/
 build/
 dist/
-aib2ofx.egg-info/
-Pipfile*
-.venv/
