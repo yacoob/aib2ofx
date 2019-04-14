@@ -1,0 +1,18 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+ipython = "*"
+ipdb = "*"
+flake8 = "*"
+python-language-server = "*"
+yapf = "*"
+
+[packages]
+aib2ofx = {editable = true,path = "."}
+mechanicalsoup = "*"
+
+[requires]
+python_version = "2.7"
