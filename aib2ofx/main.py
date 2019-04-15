@@ -51,11 +51,11 @@ def getData(user, config, output_dir, formatter, chatter):
 
     cleanup_re = re.compile('[- 	]+')
 
-    # Login to the bank, scrape data for all accounts.
+    # Login to the bank, get data for all accounts.
     creds = config[user]
     bank = aib.aib(creds, chatter)
     show_and_tell('Logging in as \'%s\'...' % user, bank.login)
-    show_and_tell('Scraping account pages for data...', bank.scrape)
+    show_and_tell('Scraping account pages for data...', bank.get_data)
     show_and_tell('Logging \'%s\' out...' % user, bank.bye)
 
     # Save each account to separate OFX file.

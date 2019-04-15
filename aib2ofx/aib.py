@@ -11,6 +11,8 @@ from BeautifulSoup import BeautifulSoup
 import dateutil.parser as dparser
 import mechanicalsoup
 
+import ipdb
+
 
 def _to_date(text):
     # AIB CSV export format: DD/MM/YYYY
@@ -85,10 +87,9 @@ class aib:
 
     def __init__(self, logindata, chatter):
         self.logindata = logindata
-        self.br = mechanicalsoup.StatefulBrowser()
+        self.browser = mechanicalsoup.StatefulBrowser()
         self.quiet = chatter['quiet']
         self.debug = chatter['debug']
-        br = self.br
 
         if self.debug:
             # make a directory for debugging output
@@ -112,55 +113,56 @@ class aib:
         self.data = {}
 
     def login(self, quiet=False):
-        br = self.br
+        """Go through the login process."""
+        brw = self.browser
         logindata = self.logindata
 
         # first stage of login - registration number
         self.logger.debug('Requesting first login page.')
-        br.open('https://onlinebanking.aib.ie/inet/roi/login.htm')
-        br.select_form(selector='#loginstep1Form')
-        br['regNumber'] = logindata['regNumber']
+        brw.open('https://onlinebanking.aib.ie/inet/roi/login.htm')
+        brw.select_form(selector='#loginstep1Form')
+        brw['regNumber'] = logindata['regNumber']
         self.logger.debug('Submitting first login form.')
-        br.submit_selected()
+        brw.submit_selected()
 
         # second stage of login - selected pin digits
-        br.select_form(selector='#loginstep2Form')
-        labels = br.get_current_page().select('label[for^=digit]')
+        brw.select_form(selector='#loginstep2Form')
+        labels = brw.get_current_page().select('label[for^=digit]')
         for idx, label in enumerate(labels):
             requested_digit = int(label.text[-2]) - 1
             pin_digit = logindata['pin'][requested_digit]
             field_name = 'pacDetails.pacDigit' + str(idx + 1)
-            self.logger.debug('Using digit number %d of PIN.' %
+            self.logger.debug('Using digit number %d of PIN.',
                               (requested_digit + 1))
-            br[field_name] = pin_digit
+            brw[field_name] = pin_digit
         self.logger.debug('Submitting second login form.')
-        br.submit_selected()
+        brw.submit_selected()
 
         # skip potential interstitial by clicking on 'my messages'
-        br.select_form('#mail_l_form_id')
+        brw.select_form('#mail_l_form_id')
         self.logger.debug(
             'Going to messages, navigating around potential interstitial.')
-        br.submit_selected()
+        brw.submit_selected()
 
         # go to the main page
-        br.select_form('#accountoverviewPage_form_id')
+        brw.select_form('#accountoverviewPage_form_id')
         self.logger.debug('Navigating to main page.')
-        br.submit_selected()
+        brw.submit_selected()
 
         # mark login as done
-        if br.get_current_page().find(string='My Accounts'):
+        if brw.get_current_page().find(string='My Accounts'):
             self.login_done = True
 
-    def scrape(self, quiet=False):
+    def get_data(self, quiet=False):
+        """Download data for all accounts."""
         if not self.login_done:
             self.login()
 
-        br = self.br
+        brw = self.browser
         self.data = {}
-
         # parse totals
-        main_page = BeautifulSoup(br.response().read(), convertEntities='html')
-        for account_line in main_page.findAll(
+        main_page = brw.get_current_page()
+        for account_line in main_page.find_all(
                 'button', attrs={'class': 'account-button'}):
             if not account_line.dt:
                 continue
@@ -191,63 +193,61 @@ class aib:
         # The latter covers shorter period of time, so we use the former. Both
         # exports differ in the type and amount of fields they export. :(
         self.logger.debug('Switching to transaction listing.')
-        br.select_form(
-            predicate=_attrEquals('id', 'historicalstatement_form_id'))
-        br.submit()
+        brw.select_form('#historicalstatement_form_id')
+        brw.submit_selected()
 
-        br.select_form(predicate=_attrEquals('id', 'hForm'))
-        account_dropdown = br.find_control(name='dsAccountIndex')
-        accounts_on_page = [
-            m.get_labels()[-1].text for m in account_dropdown.get_items()
-        ]
-        accounts_in_data = self.data.keys()
+        brw.select_form('#hForm')
+        accounts_on_page = {
+            o.text: o.get('value')
+            for o in brw.get_current_form().form.find_all('option')
+        }
 
-        for account in accounts_in_data:
-            if not account in accounts_on_page:
+        for account in list(self.data):
+            if account not in accounts_on_page.keys():
                 self.logger.debug(
-                    'skipping account %s which is absent on historical transactions page'
-                    % account)
+                    'skipping account %s which is absent on historical'
+                    'transactions page', account)
                 del self.data[account]
                 continue
 
             # get account's page
-            self.logger.debug('Requesting transactions for %s.' % account)
-            br.select_form(predicate=_attrEquals('id', 'hForm'))
-            account_dropdown = br.find_control(name='dsAccountIndex')
-            account_dropdown.set_value_by_label([account])
-            br.submit()
+            self.logger.debug('Requesting transactions for %s.', account)
+            brw.select_form('#hForm')
+            brw['dsAccountIndex'] = accounts_on_page[account]
+            brw.submit_selected()
 
             # click the export button
-            br.select_form(
-                predicate=_attrEquals('id', 'historicalTransactionsCommand'))
+            form = brw.select_form('#historicalTransactionsCommand')
             # Some accounts (eg. freshly opened ones) have export facility
             # disabled. Skip them.
-            if br.find_control(name='export').attrs.get('value') == 'false':
+            if form.form.find(attrs={
+                    'name': 'export'
+            }).get('value') == 'false':
                 self.logger.debug(
-                    'skipping account %s which has its "Export" button disabled'
-                    % account)
+                    'skipping account %s which has its "Export" button'
+                    'disabled', account)
                 del self.data[account]
                 continue
-            br.submit()
+            brw.submit_selected()
 
             # confirm the export request
-            br.select_form(
-                predicate=_attrEquals('id', 'historicalTransactionsCommand'))
-            response = br.open_novisit(br.click())
-            csv_data = csv.DictReader(response, skipinitialspace=True)
+            brw.select_form('#historicalTransactionsCommand')
+            response = brw.submit_selected(update_state=False)
+            csv_data = csv.DictReader(response.iter_lines(),
+                                      skipinitialspace=True)
             self.data[account] = _csv2account(csv_data, self.data[account])
 
             # go back to the list of accounts
-            br.select_form(
-                predicate=_attrEquals('id', 'historicaltransactions_form_id'))
-            br.submit()
+            brw.select_form('#historicaltransactions_form_id')
+            brw.submit_selected()
 
     def getdata(self):
         return self.data
 
     def bye(self, quiet=False):
         self.logger.debug('Logging out.')
-        br = self.br
-        br.select_form(predicate=_attrEquals('id', 'formLogout'))
-        br.submit()
-        # FIXME: check whether we really logged out here
+        brw = self.browser
+        brw.select_form('#formLogout')
+        brw.submit_selected()
+        if not brw.get_current_page().find(string='Logged Out'):
+            raise Exception('Logout failed!')
