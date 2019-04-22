@@ -14,7 +14,7 @@ setup(
         'console_scripts': ['aib2ofx = aib2ofx.main:main'],
     },
     dependency_links=[
-        'git+https://github.com/MechanicalSoup/MechanicalSoup'
+        'git+https://github.com/MechanicalSoup/MechanicalSoup@master'
         '#egg=mechanicalsoup --process-dependency-links'
     ],
     install_requires=[
