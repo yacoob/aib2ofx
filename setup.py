@@ -18,7 +18,7 @@ setup(
         '#egg=mechanicalsoup --process-dependency-links'
     ],
     install_requires=[
-        'mechanicalsoup',
+        'mechanicalsoup>=1',
         'python-dateutil',
     ],
 )
