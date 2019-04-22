@@ -7,11 +7,8 @@ import logging
 import re
 import tempfile
 
-from BeautifulSoup import BeautifulSoup
 import dateutil.parser as dparser
 import mechanicalsoup
-
-import ipdb
 
 
 def _to_date(text):
@@ -21,46 +18,41 @@ def _to_date(text):
 
 def _to_value(text):
     tmp = text.strip().replace(',', '')
-    # FIXME: UNICODE characters, we has them in input
-    # FIXME: alternatively, purge entities
     if tmp[-3:] == ' DR':
         return '-' + tmp[:-3]
     return tmp
 
 
-def _attrEquals(name, text):
-    return lambda f: f.attrs.get(name) == text
-
-
 def _csv2account(csv_data, acc):
-    txs = [tx for tx in csv_data]
-    if not txs:
+    transactions = [x for x in csv_data]
+    if not transactions:
         return None
-    if 'Masked Card Number' in txs[0]:
+    if 'Masked Card Number' in transactions[0]:
         acc['type'] = 'credit'
     else:
         acc['type'] = 'checking'
-        acc['balance'] = txs[-1].get('Balance', 0)
+        acc['balance'] = transactions[-1].get('Balance', 0)
     operations = []
-    for tx in txs:
-        op = {}
-        op['timestamp'] = _to_date(tx['Posted Transactions Date'])
+    for transaction in transactions:
+        operation = {}
+        operation['timestamp'] = _to_date(
+            transaction['Posted Transactions Date'])
         # The mysterious story of 'Description' field in CSV exports continues!
         # Now the columns differ between CC and current account, on top of the
         # implemented bugs :(
         if acc['type'] == 'credit':
-            desc = tx['Description']
+            desc = transaction['Description']
             if len(desc) > 18 and desc[18] == ' ':
                 desc = desc[:18] + desc[19:]
         else:
             d = []
             for i in [1, 2, 3]:
-                d.append(tx['Description%s' % i].strip())
+                d.append(transaction['Description%s' % i].strip())
             desc = ' '.join(filter(bool, d))
-        op['description'] = desc
-        op['debit'] = _to_value(tx['Debit Amount'])
-        op['credit'] = _to_value(tx['Credit Amount'])
-        operations.append(op)
+        operation['description'] = desc
+        operation['debit'] = _to_value(transaction['Debit Amount'])
+        operation['credit'] = _to_value(transaction['Credit Amount'])
+        operations.append(operation)
     acc['operations'] = operations
     return acc
 
