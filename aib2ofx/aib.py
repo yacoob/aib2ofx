@@ -86,7 +86,8 @@ class aib:
         if self.debug:
             # make a directory for debugging output
             self.debugdir = tempfile.mkdtemp(prefix='aib2ofx_')
-            print 'WARNING: putting *sensitive* debug data in %s' % self.debugdir
+            print('WARNING: putting *sensitive* debug data in %s' %
+                  self.debugdir)
             self.logger = logging.getLogger("mechanize")
             fh = logging.FileHandler(self.debugdir + '/mechanize.log', 'w')
             fm = CleansingFormatter('%(asctime)s\n%(message)s')
