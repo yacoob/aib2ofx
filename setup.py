@@ -13,11 +13,8 @@ setup(
     entry_points={
         'console_scripts': ['aib2ofx = aib2ofx.main:main'],
     },
-    dependency_links=[
-        'https://github.com/MechanicalSoup/MechanicalSoup/tarball/master'
-        '#egg=mechanicalsoup-1.0.0-dev'],
     install_requires=[
-        'mechanicalsoup==1.0.0-dev',
+        'mechanicalsoup @ git+https://github.com/MechanicalSoup/MechanicalSoup@master#egg=mechanicalsoup-1.0.0-dev',
         'python-dateutil',
     ],
 )
