@@ -9,10 +9,12 @@ ipdb = "*"
 flake8 = "*"
 python-language-server = "*"
 yapf = "*"
+pipdeptree = "*"
 
 [packages]
 aib2ofx = {editable = true,path = "."}
-mechanicalsoup = "*"
+mechanicalsoup = {git = "git://github.com/MechanicalSoup/MechanicalSoup",ref = "master"}
+python-dateutil = "*"
 
 [requires]
 python_version = "2.7"
