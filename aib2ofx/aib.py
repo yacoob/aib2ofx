@@ -128,18 +128,13 @@ class aib:
             self.logger.debug('Using digit number %d of PIN.',
                               (requested_digit + 1))
             brw[field_name] = pin_digit
+        brw['useLimitedAccessOption'] = True
         self.logger.debug('Submitting second login form.')
         brw.submit_selected()
 
-        # skip potential interstitial by clicking on 'my messages'
-        brw.select_form('#mail_l_form_id')
-        self.logger.debug(
-            'Going to messages, navigating around potential interstitial.')
-        brw.submit_selected()
-
-        # go to the main page
-        brw.select_form('#accountoverviewPage_form_id')
-        self.logger.debug('Navigating to main page.')
+        # skip limited access interstitial
+        brw.select_form('#formLimited')
+        self.logger.debug('Acknowledging limited access interstitial.')
         brw.submit_selected()
 
         # mark login as done
