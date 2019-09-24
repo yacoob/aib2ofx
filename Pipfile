@@ -13,7 +13,7 @@ pipdeptree = "*"
 
 [packages]
 aib2ofx = {editable = true,path = "."}
-mechanicalsoup = {git = "git://github.com/MechanicalSoup/MechanicalSoup",ref = "master"}
+mechanicalsoup = ">=0.12"
 python-dateutil = "*"
 
 [requires]
