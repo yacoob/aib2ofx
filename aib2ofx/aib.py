@@ -6,6 +6,7 @@ import datetime
 import logging
 import re
 import tempfile
+import time
 
 import dateutil.parser as dparser
 import mechanicalsoup
@@ -128,13 +129,25 @@ class aib:
             self.logger.debug('Using digit number %d of PIN.',
                               (requested_digit + 1))
             brw[field_name] = pin_digit
-        brw['useLimitedAccessOption'] = True
+        # brw['useLimitedAccessOption'] = True
         self.logger.debug('Submitting second login form.')
         brw.submit_selected()
 
-        # skip limited access interstitial
-        brw.select_form('#formLimited')
-        self.logger.debug('Acknowledging limited access interstitial.')
+        # Wait for 2FA on phone
+        tfa_done = False
+        while not tfa_done:
+            brw.select_form('#finalizeForm')
+            response = brw.submit_selected(update_state=False)
+            # print response.content
+            # TODO: handle other options: rejected, timeout, setup needed etc.
+            if response.content == 'approved':
+                tfa_done = True
+            time.sleep(1)
+
+        # Forward to normal interface.
+        brw.select_form('#finalizeForm')
+        brw.submit_selected()
+        brw.select_form('#finalizeForm')
         brw.submit_selected()
 
         # mark login as done
