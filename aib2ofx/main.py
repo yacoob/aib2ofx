@@ -54,7 +54,7 @@ def getData(user, config, output_dir, formatter, chatter):
     # Login to the bank, get data for all accounts.
     creds = config[user]
     bank = aib.aib(creds, chatter)
-    show_and_tell('Logging in as \'%s\'...' % user, bank.login)
+    show_and_tell('Logging in as \'%s\' (check your phone for 2FA)...' % user, bank.login)
     show_and_tell('Scraping account pages for data...', bank.get_data)
     show_and_tell('Logging \'%s\' out...' % user, bank.bye)
 

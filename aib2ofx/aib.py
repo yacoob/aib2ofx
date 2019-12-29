@@ -138,7 +138,6 @@ class aib:
         while not tfa_done:
             brw.select_form('#finalizeForm')
             response = brw.submit_selected(update_state=False)
-            # print response.content
             # TODO: handle other options: rejected, timeout, setup needed etc.
             if response.content == 'approved':
                 tfa_done = True
