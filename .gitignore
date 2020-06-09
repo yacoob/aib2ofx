@@ -3,3 +3,4 @@
 aib2ofx.egg-info/
 build/
 dist/
+.vscode/
