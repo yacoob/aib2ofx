@@ -10,11 +10,15 @@ flake8 = "*"
 python-language-server = "*"
 yapf = "*"
 pipdeptree = "*"
+pylint = "<2.0.0"
 
 [packages]
-aib2ofx = {editable = true,path = "."}
 mechanicalsoup = ">=0.12"
 python-dateutil = "*"
 
 [requires]
 python_version = "2.7"
+
+[packages.aib2ofx]
+editable = true
+path = "."
