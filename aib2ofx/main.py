@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import codecs, datetime, errno, optparse, os, re, sys
+import dateutil.parser as dparser
 
 from aib2ofx import aib, cfg, ofx
 
@@ -23,6 +24,10 @@ def getOptions():
                              action='store_true',
                              dest='quiet_mode',
                              help='display no output at all [False]'),
+        optparse.make_option('-l',
+                            '--later-than',
+                            dest='later_than',
+                            help='exports only transactions later than specified date [YYYY-MM-DD]'),
     ]
     parser.add_options(option_list)
     output_dir = os.path.join('.', datetime.date.today().strftime('%Y-%m-%d'))
@@ -68,15 +73,19 @@ def getData(user, config, output_dir, formatter, chatter):
 
 def main():
     # Parse command line options.
-    (options, args) = getOptions()
+    (options, _) = getOptions()
     chatter = {
         'quiet': options.quiet_mode,
         'debug': options.debug_mode,
     }
+    if options.later_than:
+        later_than = dparser.parse(options.later_than, dayfirst=False, yearfirst=True)
+    else:
+        later_than = None
 
     # Read user-provided credentials.
     config = cfg.Config()
-    formatter = ofx.ofx()
+    formatter = ofx.ofx(later_than)
 
     try:
         os.makedirs(options.output_dir)

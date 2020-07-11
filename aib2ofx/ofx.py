@@ -10,7 +10,8 @@ def _toDate(d):
 
 
 class ofx:
-    def __init__(self):
+    def __init__(self, later_than):
+        self.later_than = later_than
         self.opening = """OFXHEADER:100
 DATA:OFXSGML
 VERSION:102
@@ -103,6 +104,8 @@ NEWFILEUID:NONE
         transactions = []
         for transaction in data['operations']:
             t = transaction.copy()
+            if self.later_than and t['timestamp'] <= self.later_than:
+                continue
             t['description'] = escape(t['description'])
             if t['credit'] and float(t['credit']) != 0:
                 t['type'] = 'CREDIT'
