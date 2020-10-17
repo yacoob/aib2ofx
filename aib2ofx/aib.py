@@ -146,8 +146,6 @@ class aib:
         # Forward to normal interface.
         brw.select_form('#finalizeForm')
         brw.submit_selected()
-        brw.select_form('#finalizeForm')
-        brw.submit_selected()
 
         # mark login as done
         if brw.get_current_page().find(string='My Accounts'):
