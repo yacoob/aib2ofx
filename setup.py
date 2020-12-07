@@ -14,7 +14,7 @@ setup(
         'console_scripts': ['aib2ofx = aib2ofx.main:main'],
     },
     install_requires=[
-        'mechanicalsoup @ git+https://github.com/MechanicalSoup/MechanicalSoup@master#egg=mechanicalsoup-1.0.0-dev',
+        'mechanicalsoup',
         'python-dateutil',
     ],
 )
