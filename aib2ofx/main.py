@@ -4,7 +4,9 @@
 import codecs, datetime, errno, optparse, os, re, sys
 import dateutil.parser as dparser
 
-from aib2ofx import aib, cfg, ofx
+import aib
+import cfg
+import ofx
 
 
 def getOptions():
