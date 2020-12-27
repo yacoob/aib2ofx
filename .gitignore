@@ -1,5 +1,6 @@
 2???-??-??/
 .venv/
+.venv3/
 aib2ofx.egg-info/
 build/
 dist/
