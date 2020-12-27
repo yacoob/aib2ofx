@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 from hashlib import sha256
 from xml.sax.saxutils import escape
@@ -9,7 +8,7 @@ def _toDate(d):
     return d.strftime('%Y%m%d%H%M%S')
 
 
-class ofx:
+class ofx(object):
     def __init__(self, later_than):
         self.later_than = later_than
         self.opening = """OFXHEADER:100
@@ -123,7 +122,7 @@ NEWFILEUID:NONE
             if hd in hashes:
                 n = hashes[hd] + 1
                 hashes[hd] = n
-                h.update(str(n))
+                h.update(b'%d' % n)
             else:
                 hashes[hd] = 1
             t['tid'] = h.hexdigest()

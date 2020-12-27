@@ -25,7 +25,7 @@ class Config(object):
 
     def users(self):
         """Returns list of configured users."""
-        return self.cfg.keys()
+        return list(self.cfg.keys())
 
     def __getitem__(self, name):
         if name in self.cfg:

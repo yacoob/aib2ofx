@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-# coding: utf-8
 
-import codecs, datetime, errno, optparse, os, re, sys
+import datetime, errno, optparse, os, re, sys
 import dateutil.parser as dparser
 
 import aib
@@ -40,9 +39,8 @@ def getOptions():
 
 
 def writeFile(account_data, output_dir, user, accountId, formatter):
-    f = codecs.open('%s/%s_%s.ofx' % (output_dir, user, accountId), 'w',
-                    'utf-8')
-    f.write(formatter.prettyprint(account_data).encode('utf-8'))
+    f = open('%s/%s_%s.ofx' % (output_dir, user, accountId), 'w')
+    f.write(formatter.prettyprint(account_data))
     f.close
 
 
@@ -51,10 +49,10 @@ def getData(user, config, output_dir, formatter, chatter):
         if (chatter['quiet']):
             function(chatter)
         else:
-            print pre,
+            print(pre, end=' ')
             sys.stdout.flush()
             function(chatter)
-            print post
+            print(post)
 
     cleanup_re = re.compile('[- 	]+')
 

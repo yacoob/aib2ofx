@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# coding: utf-8
 
 import csv
 import datetime
@@ -74,7 +73,7 @@ class CleansingFormatter(logging.Formatter):
         return logging.Formatter.format(self, record)
 
 
-class aib:
+class aib(object):
     strip_chars = '\xa0\xc2'
     new_operations = ['Interest Rate']
 
@@ -139,7 +138,7 @@ class aib:
             brw.select_form('#finalizeForm')
             response = brw.submit_selected(update_state=False)
             # TODO: handle other options: rejected, timeout, setup needed etc.
-            if response.content == 'approved':
+            if response.content == b'approved':
                 tfa_done = True
             time.sleep(1)
 
@@ -170,14 +169,11 @@ class aib:
                 continue
 
             account = {}
-            account['accountId'] = account_line.dt.renderContents().translate(
-                None, '\r\t\n').strip()
+            account['accountId'] = account_line.dt.get_text(strip=True)
             account['available'] = _to_value(
                 account_line.find('span', {
                     'class': re.compile('.*a-amount.*')
-                }).renderContents().translate(
-                    None,
-                    '\r\t\n' + ''.join([chr(i) for i in range(128, 256)])))
+                }).get_text(strip=True))
             account['currency'] = 'EUR'
             account['bankId'] = 'AIB'
             account['reportDate'] = datetime.datetime.now()
@@ -231,7 +227,7 @@ class aib:
             # confirm the export request
             brw.select_form('#historicalTransactionsCommand')
             response = brw.submit_selected(update_state=False)
-            csv_data = csv.DictReader(response.iter_lines(),
+            csv_data = csv.DictReader(response.iter_lines(decode_unicode=True),
                                       skipinitialspace=True)
             self.data[account] = _csv2account(csv_data, self.data[account])
 
