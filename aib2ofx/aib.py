@@ -58,6 +58,7 @@ def _csv2account(csv_data, acc):
 
 class CleansingFormatter(logging.Formatter):
     """Logging formatter that scrubs monetary values out."""
+
     def __init__(self, fmt=None, datefmt=None):
         self.amount_re = re.compile(r'(?:\d+,)*\d+\.\d+(?: DR)?')
         self.date_re = re.compile(r'\d\d/\d\d/\d\d')
@@ -75,6 +76,7 @@ class CleansingFormatter(logging.Formatter):
 
 class Aib:
     """Automated browser interacting with AIB online interface."""
+
     strip_chars = '\xa0\xc2'
     new_operations = ['Interest Rate']
 

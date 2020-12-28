@@ -1,8 +1,8 @@
 """Command line interface of aib2ofx."""
 
+import argparse
 import datetime
 import errno
-import optparse
 import os
 import re
 import sys
@@ -16,38 +16,38 @@ from . import ofx
 
 def get_options():
     """Parse argv into options."""
-    parser = optparse.OptionParser()
-    option_list = [
-        optparse.make_option(
-            '-d',
-            '--output-dir',
-            dest='output_dir',
-            help='directory to put OFX files in [/tmp]',
-        ),
-        optparse.make_option(
-            '-D',
-            '--debug',
-            action='store_true',
-            dest='debug_mode',
-            help='display some debug output [False]',
-        ),
-        optparse.make_option(
-            '-q',
-            '--quiet',
-            action='store_true',
-            dest='quiet_mode',
-            help='display no output at all [False]',
-        ),
-        optparse.make_option(
-            '-l',
-            '--later-than',
-            dest='later_than',
-            help='exports only transactions later than specified date [YYYY-MM-DD]',
-        ),
-    ]
-    parser.add_options(option_list)
-    output_dir = os.path.join('.', datetime.date.today().strftime('%Y-%m-%d'))
-    parser.set_defaults(output_dir=output_dir, debug_mode=False, quiet_mode=False)
+    parser = argparse.ArgumentParser(
+        description='Download data from aib.ie in OFX format'
+    )
+    parser.add_argument(
+        '-d',
+        '--output-dir',
+        default=os.path.join('.', datetime.date.today().strftime('%Y-%m-%d')),
+        dest='output_dir',
+        help='directory to put OFX files in [%(default)s]',
+    )
+    parser.add_argument(
+        '-D',
+        '--debug',
+        action='store_true',
+        default=False,
+        dest='debug_mode',
+        help='display some debug output [%(default)s]',
+    )
+    parser.add_argument(
+        '-q',
+        '--quiet',
+        action='store_true',
+        default=False,
+        dest='quiet_mode',
+        help='display no output at all [%(default)s]',
+    )
+    parser.add_argument(
+        '-l',
+        '--later-than',
+        dest='later_than',
+        help='exports only transactions later than specified date (YYYY-MM-DD)',
+    )
     return parser.parse_args()
 
 
@@ -63,11 +63,11 @@ def get_data(user, config, output_dir, formatter, chatter):
 
     def show_and_tell(pre, function, post='done.'):
         if chatter['quiet']:
-            function(chatter)
+            function()
         else:
             print(pre, end=' ')
             sys.stdout.flush()
-            function(chatter)
+            function()
             print(post)
 
     cleanup_re = re.compile('[- 	]+')
@@ -92,7 +92,7 @@ def get_data(user, config, output_dir, formatter, chatter):
 def main():
     """Main script entry point."""
     # Parse command line options.
-    (options, _) = get_options()
+    options = get_options()
     chatter = {
         'quiet': options.quiet_mode,
         'debug': options.debug_mode,
