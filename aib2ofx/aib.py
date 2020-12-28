@@ -77,21 +77,14 @@ class CleansingFormatter(logging.Formatter):
 class Aib:
     """Automated browser interacting with AIB online interface."""
 
-    strip_chars = '\xa0\xc2'
-    new_operations = ['Interest Rate']
-
     def __init__(self, logindata, chatter):
         self.logindata = logindata
-        self.browser = mechanicalsoup.StatefulBrowser()
-        self.quiet = chatter['quiet']
-        self.debug = chatter['debug']
-
-        if self.debug:
+        if chatter['debug']:
             # make a directory for debugging output
-            self.debugdir = tempfile.mkdtemp(prefix='aib2ofx_')
-            print('WARNING: putting *sensitive* debug data in %s' % self.debugdir)
+            debugdir = tempfile.mkdtemp(prefix='aib2ofx_')
+            print('WARNING: putting *sensitive* debug data in %s' % debugdir)
             self.logger = logging.getLogger("mechanize")
-            logfile = logging.FileHandler(self.debugdir + '/mechanize.log', 'w')
+            logfile = logging.FileHandler(debugdir + '/mechanize.log', 'w')
             formatter = CleansingFormatter('%(asctime)s\n%(message)s')
             logfile.setFormatter(formatter)
             self.logger.addHandler(logfile)
@@ -99,20 +92,19 @@ class Aib:
         else:
             logging.disable(logging.DEBUG)
             self.logger = logging.getLogger(None)
-
+        self.browser = mechanicalsoup.StatefulBrowser()
         self.login_done = False
         self.data = {}
 
     def login(self):
         """Go through the login process."""
         brw = self.browser
-        logindata = self.logindata
 
         # first stage of login - registration number
         self.logger.debug('Requesting first login page.')
         brw.open('https://onlinebanking.aib.ie/inet/roi/login.htm')
         brw.select_form(selector='#loginstep1Form')
-        brw['regNumber'] = logindata['regNumber']
+        brw['regNumber'] = self.logindata['regNumber']
         self.logger.debug('Submitting first login form.')
         brw.submit_selected()
 
@@ -121,7 +113,7 @@ class Aib:
         labels = brw.get_current_page().select('label[for^=digit]')
         for idx, label in enumerate(labels):
             requested_digit = int(label.text[-2]) - 1
-            pin_digit = logindata['pin'][requested_digit]
+            pin_digit = self.logindata['pin'][requested_digit]
             field_name = 'pacDetails.pacDigit' + str(idx + 1)
             self.logger.debug('Using digit number %d of PIN.', (requested_digit + 1))
             brw[field_name] = pin_digit
