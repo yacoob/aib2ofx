@@ -117,7 +117,6 @@ class Aib:
             field_name = 'pacDetails.pacDigit' + str(idx + 1)
             self.logger.debug('Using digit number %d of PIN.', (requested_digit + 1))
             brw[field_name] = pin_digit
-        # brw['useLimitedAccessOption'] = True
         self.logger.debug('Submitting second login form.')
         brw.submit_selected()
 
