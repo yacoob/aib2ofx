@@ -126,9 +126,12 @@ class Aib:
         while not tfa_done:
             brw.select_form('#finalizeForm')
             response = brw.submit_selected(update_state=False)
-            # TODO: handle other options: rejected, timeout, setup needed etc.
             if response.content == b'approved':
                 tfa_done = True
+            elif response.content != b'in_progress':
+                raise RuntimeError(
+                    'unexpected answer during 2FA auth: %s' % response.content
+                )
             time.sleep(1)
 
         # Forward to normal interface.
