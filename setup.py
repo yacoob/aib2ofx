@@ -11,7 +11,7 @@ setup(
     url='http://github.com/yacoob/aib2ofx',
     packages=['aib2ofx'],
     entry_points={
-        'console_scripts': ['aib2ofx = aib2ofx.main:main'],
+        'console_scripts': ['aib2ofx = aib2ofx.cli:main'],
     },
     install_requires=[
         'mechanicalsoup',
