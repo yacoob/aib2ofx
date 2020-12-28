@@ -1,12 +1,15 @@
+"""Functionality related to producing OFX format out of parsed data."""
+
 from hashlib import sha256
 from xml.sax.saxutils import escape
 
 
-def _toDate(d):
-    return d.strftime('%Y%m%d%H%M%S')
+def _to_date(date):
+    return date.strftime('%Y%m%d%H%M%S')
 
 
-class ofx(object):
+class Ofx:
+    """OFX formatter."""
     def __init__(self, later_than):
         self.later_than = later_than
         self.opening = """OFXHEADER:100
@@ -76,18 +79,19 @@ NEWFILEUID:NONE
 </STMTTRN>
 """
 
-    def prettyprint(self, input):
+    def prettyprint(self, input_data):
+        """Turns dictionary into OFX document."""
         ofx = ''
         data = {}
 
         # Move obvious things to data.
-        data = input.copy()
+        data = input_data.copy()
 
         # Calculate rest of necessary fields.
-        data['reportDate'] = _toDate(data['reportDate'])
+        data['reportDate'] = _to_date(data['reportDate'])
         if data['operations']:
-            data['firstDate'] = _toDate(data['operations'][0]['timestamp'])
-            data['lastDate'] = _toDate(data['operations'][-1]['timestamp'])
+            data['firstDate'] = _to_date(data['operations'][0]['timestamp'])
+            data['lastDate'] = _to_date(data['operations'][-1]['timestamp'])
         else:
             data['firstDate'] = data['reportDate']
             data['lastDate'] = data['reportDate']
@@ -96,33 +100,33 @@ NEWFILEUID:NONE
         hashes = {}
         transactions = []
         for transaction in data['operations']:
-            t = transaction.copy()
-            if self.later_than and t['timestamp'] <= self.later_than:
+            trx = transaction.copy()
+            if self.later_than and trx['timestamp'] <= self.later_than:
                 continue
-            t['description'] = escape(t['description'])
-            if t['credit'] and float(t['credit']) != 0:
-                t['type'] = 'CREDIT'
-                t['amount'] = t['credit']
+            trx['description'] = escape(trx['description'])
+            if trx['credit'] and float(trx['credit']) != 0:
+                trx['type'] = 'CREDIT'
+                trx['amount'] = trx['credit']
             else:
-                t['type'] = 'DEBIT'
-                t['amount'] = '-%s' % t['debit']
-            t['timestamp'] = _toDate(t['timestamp'])
-            h = sha256(
-                t['timestamp'].encode("utf-8")
-                + t['amount'].encode("utf-8")
-                + t['description'].encode("utf-8")
+                trx['type'] = 'DEBIT'
+                trx['amount'] = '-%s' % trx['debit']
+            trx['timestamp'] = _to_date(trx['timestamp'])
+            hsh = sha256(
+                trx['timestamp'].encode("utf-8")
+                + trx['amount'].encode("utf-8")
+                + trx['description'].encode("utf-8")
             )
-            hd = h.hexdigest()
+            digest = hsh.hexdigest()
             # If there's been a transaction with identical hash in the current
             # set, record this and modify the hash to be different in OFX.
-            if hd in hashes:
-                n = hashes[hd] + 1
-                hashes[hd] = n
-                h.update(b'%d' % n)
+            if digest in hashes:
+                count = hashes[digest] + 1
+                hashes[digest] = count
+                hsh.update(b'%d' % count)
             else:
-                hashes[hd] = 1
-            t['tid'] = h.hexdigest()
-            transactions.append(self.single_transaction % t)
+                hashes[digest] = 1
+            trx['tid'] = hsh.hexdigest()
+            transactions.append(self.single_transaction % trx)
 
         data['transactions'] = '\n'.join(transactions)
 

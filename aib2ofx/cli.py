@@ -1,4 +1,12 @@
-import datetime, errno, optparse, os, re, sys
+"""Command line interface of aib2ofx."""
+
+import datetime
+import errno
+import optparse
+import os
+import re
+import sys
+
 import dateutil.parser as dparser
 
 from . import aib
@@ -6,7 +14,8 @@ from . import cfg
 from . import ofx
 
 
-def getOptions():
+def get_options():
+    """Parse argv into options."""
     parser = optparse.OptionParser()
     option_list = [
         optparse.make_option(
@@ -42,13 +51,16 @@ def getOptions():
     return parser.parse_args()
 
 
-def writeFile(account_data, output_dir, user, accountId, formatter):
-    f = open('%s/%s_%s.ofx' % (output_dir, user, accountId), 'w')
-    f.write(formatter.prettyprint(account_data))
-    f.close
+def write_file(account_data, output_dir, user, account_id, formatter):
+    """Save parsed data to a file."""
+    outf = open('%s/%s_%s.ofx' % (output_dir, user, account_id), 'w')
+    outf.write(formatter.prettyprint(account_data))
+    outf.close()
 
 
-def getData(user, config, output_dir, formatter, chatter):
+def get_data(user, config, output_dir, formatter, chatter):
+    """Fetch, process and save data for a single user."""
+
     def show_and_tell(pre, function, post='done.'):
         if chatter['quiet']:
             function(chatter)
@@ -62,7 +74,7 @@ def getData(user, config, output_dir, formatter, chatter):
 
     # Login to the bank, get data for all accounts.
     creds = config[user]
-    bank = aib.aib(creds, chatter)
+    bank = aib.Aib(creds, chatter)
     show_and_tell(
         'Logging in as \'%s\' (check your phone for 2FA)...' % user, bank.login
     )
@@ -74,12 +86,13 @@ def getData(user, config, output_dir, formatter, chatter):
         if not account:
             continue
         name = re.sub(cleanup_re, '_', account['accountId']).lower()
-        writeFile(account, output_dir, user, name, formatter)
+        write_file(account, output_dir, user, name, formatter)
 
 
 def main():
+    """Main script entry point."""
     # Parse command line options.
-    (options, _) = getOptions()
+    (options, _) = get_options()
     chatter = {
         'quiet': options.quiet_mode,
         'debug': options.debug_mode,
@@ -91,7 +104,7 @@ def main():
 
     # Read user-provided credentials.
     config = cfg.Config()
-    formatter = ofx.ofx(later_than)
+    formatter = ofx.Ofx(later_than)
 
     try:
         os.makedirs(options.output_dir)
@@ -101,7 +114,7 @@ def main():
 
     # Iterate through accounts, scrape, format and save data.
     for user in config.users():
-        getData(user, config, options.output_dir, formatter, chatter)
+        get_data(user, config, options.output_dir, formatter, chatter)
 
 
 if __name__ == '__main__':

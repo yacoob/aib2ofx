@@ -5,7 +5,7 @@ import os
 import re
 
 
-class Config(object):
+class Config:
     """Simple dictionary-like config object."""
 
     def __init__(self, config_filename='~/.aib2ofx.json'):
@@ -29,5 +29,4 @@ class Config(object):
     def __getitem__(self, name):
         if name in self.cfg:
             return self.cfg[name]
-        else:
-            raise AttributeError
+        raise AttributeError

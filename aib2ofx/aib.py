@@ -1,3 +1,5 @@
+"""All functionality related to interactions with AIB online interface."""
+
 import csv
 import datetime
 import logging
@@ -22,7 +24,7 @@ def _to_value(text):
 
 
 def _csv2account(csv_data, acc):
-    transactions = [x for x in csv_data]
+    transactions = list(csv_data)
     if not transactions:
         return None
     if 'Masked Card Number' in transactions[0]:
@@ -42,10 +44,10 @@ def _csv2account(csv_data, acc):
             if len(desc) > 18 and desc[18] == ' ':
                 desc = desc[:18] + desc[19:]
         else:
-            d = []
+            descriptions = []
             for i in [1, 2, 3]:
-                d.append(transaction['Description%s' % i].strip())
-            desc = ' '.join(filter(bool, d))
+                descriptions.append(transaction['Description%s' % i].strip())
+            desc = ' '.join(filter(bool, descriptions))
         operation['description'] = desc
         operation['debit'] = _to_value(transaction['Debit Amount'])
         operation['credit'] = _to_value(transaction['Credit Amount'])
@@ -55,6 +57,7 @@ def _csv2account(csv_data, acc):
 
 
 class CleansingFormatter(logging.Formatter):
+    """Logging formatter that scrubs monetary values out."""
     def __init__(self, fmt=None, datefmt=None):
         self.amount_re = re.compile(r'(?:\d+,)*\d+\.\d+(?: DR)?')
         self.date_re = re.compile(r'\d\d/\d\d/\d\d')
@@ -70,7 +73,8 @@ class CleansingFormatter(logging.Formatter):
         return logging.Formatter.format(self, record)
 
 
-class aib(object):
+class Aib:
+    """Automated browser interacting with AIB online interface."""
     strip_chars = '\xa0\xc2'
     new_operations = ['Interest Rate']
 
@@ -85,15 +89,11 @@ class aib(object):
             self.debugdir = tempfile.mkdtemp(prefix='aib2ofx_')
             print('WARNING: putting *sensitive* debug data in %s' % self.debugdir)
             self.logger = logging.getLogger("mechanize")
-            fh = logging.FileHandler(self.debugdir + '/mechanize.log', 'w')
-            fm = CleansingFormatter('%(asctime)s\n%(message)s')
-            fh.setFormatter(fm)
-            self.logger.addHandler(fh)
+            logfile = logging.FileHandler(self.debugdir + '/mechanize.log', 'w')
+            formatter = CleansingFormatter('%(asctime)s\n%(message)s')
+            logfile.setFormatter(formatter)
+            self.logger.addHandler(logfile)
             self.logger.setLevel(logging.DEBUG)
-
-            # FIXME: better logging for page *content*
-            # br.set_debug_redirects(True)
-            # br.set_debug_responses(True)
         else:
             logging.disable(logging.DEBUG)
             self.logger = logging.getLogger(None)
@@ -101,7 +101,7 @@ class aib(object):
         self.login_done = False
         self.data = {}
 
-    def login(self, quiet=False):
+    def login(self):
         """Go through the login process."""
         brw = self.browser
         logindata = self.logindata
@@ -145,7 +145,7 @@ class aib(object):
         if brw.get_current_page().find(string='My Accounts'):
             self.login_done = True
 
-    def get_data(self, quiet=False):
+    def get_data(self):
         """Download data for all accounts."""
         if not self.login_done:
             self.login()
@@ -235,9 +235,11 @@ class aib(object):
             brw.submit_selected()
 
     def getdata(self):
+        """Returns data acquired from online interface."""
         return self.data
 
-    def bye(self, quiet=False):
+    def bye(self):
+        """Logs user out of bank's online interface."""
         self.logger.debug('Logging out.')
         brw = self.browser
         brw.select_form('#formLogout')
