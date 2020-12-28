@@ -1,5 +1,4 @@
 """Configuration file handling for aib2ofx."""
-# coding: utf-8
 
 import json
 import os

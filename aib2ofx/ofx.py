@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 from hashlib import sha256
 from xml.sax.saxutils import escape
 

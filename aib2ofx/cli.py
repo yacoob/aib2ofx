@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import datetime, errno, optparse, os, re, sys
 import dateutil.parser as dparser
 
