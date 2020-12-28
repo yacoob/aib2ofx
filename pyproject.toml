@@ -3,7 +3,7 @@ skip-string-normalization = true
 
 [tool.poetry]
 name = 'aib2ofx'
-version = '1.0.0'
+version = '0.70.0'
 description = 'Download data from aib.ie in OFX format'
 authors = ['Jakub Turski <yacoob@gmail.com>']
 license = 'MIT'

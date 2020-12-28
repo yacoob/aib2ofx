@@ -1,10 +1,12 @@
 # aib2ofx
+
 ...or how to grab transaction data out of AIB's online interface, and format it
 into `OFX` file.
 
 ## Installation
 
-    pipenv --two install 'git+git://github.com/yacoob/aib2ofx.git@master#egg=aib2ofx'
+    python3 -mvenv aib2ofx
+    pip install aib2ofx
 
 This will create a virtualenv for `aib2ofx`, fetch its code then install it with
 all dependencies. Once that completes, you'll find `aib2ofx` executable in the
