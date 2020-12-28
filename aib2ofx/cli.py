@@ -51,14 +51,14 @@ def get_options():
     return parser.parse_args()
 
 
-def write_file(account_data, output_dir, user, account_id, formatter):
+def write_file(output_dir, user, account_id, contents):
     """Save parsed data to a file."""
     outf = open('%s/%s_%s.ofx' % (output_dir, user, account_id), 'w')
-    outf.write(formatter.prettyprint(account_data))
+    outf.write(contents)
     outf.close()
 
 
-def get_data(user, config, output_dir, formatter, chatter):
+def get_data(user, config, output_dir, later_than, chatter):
     """Fetch, process and save data for a single user."""
 
     def show_and_tell(pre, function, post='done.'):
@@ -86,7 +86,8 @@ def get_data(user, config, output_dir, formatter, chatter):
         if not account:
             continue
         name = re.sub(cleanup_re, '_', account['accountId']).lower()
-        write_file(account, output_dir, user, name, formatter)
+        contents = ofx.bankdata_to_ofx(account, later_than)
+        write_file(output_dir, user, name, contents)
 
 
 def main():
@@ -104,7 +105,6 @@ def main():
 
     # Read user-provided credentials.
     config = cfg.Config()
-    formatter = ofx.Ofx(later_than)
 
     try:
         os.makedirs(options.output_dir)
@@ -114,7 +114,7 @@ def main():
 
     # Iterate through accounts, scrape, format and save data.
     for user in config.users():
-        get_data(user, config, options.output_dir, formatter, chatter)
+        get_data(user, config, options.output_dir, later_than, chatter)
 
 
 if __name__ == '__main__':
