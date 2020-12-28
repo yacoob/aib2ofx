@@ -3,9 +3,9 @@
 import datetime, errno, optparse, os, re, sys
 import dateutil.parser as dparser
 
-import aib
-import cfg
-import ofx
+from . import aib
+from . import cfg
+from . import ofx
 
 
 def getOptions():
