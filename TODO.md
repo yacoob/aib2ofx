@@ -1,7 +1,6 @@
 # Things to do on this new adventure 🤖
 
-* read <https://docs.python.org/3/howto/unicode.html>
-* check if aib2ofx is still installable via pipenv
+* apply black, configure vscode to use it
 * upload to pypi
 * update documentation
 * update branches
