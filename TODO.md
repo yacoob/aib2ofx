@@ -1,6 +1,6 @@
 # Things to do on this new adventure 🤖
 
-* apply black, configure vscode to use it
+* try out poetry
 * upload to pypi
 * update documentation
 * update branches
