@@ -6,7 +6,8 @@ into `OFX` file.
 ## Installation
 
     python3 -mvenv aib2ofx
-    pip install aib2ofx
+    source aib2ofx/bin/activate
+    pip3 install aib2ofx
 
 This will create a virtualenv for `aib2ofx`, fetch its code then install it with
 all dependencies. Once that completes, you'll find `aib2ofx` executable in the
