@@ -11,30 +11,36 @@ from . import ofx
 def getOptions():
     parser = optparse.OptionParser()
     option_list = [
-        optparse.make_option('-d',
-                             '--output-dir',
-                             dest='output_dir',
-                             help='directory to put OFX files in [/tmp]'),
-        optparse.make_option('-D',
-                             '--debug',
-                             action='store_true',
-                             dest='debug_mode',
-                             help='display some debug output [False]'),
-        optparse.make_option('-q',
-                             '--quiet',
-                             action='store_true',
-                             dest='quiet_mode',
-                             help='display no output at all [False]'),
-        optparse.make_option('-l',
-                            '--later-than',
-                            dest='later_than',
-                            help='exports only transactions later than specified date [YYYY-MM-DD]'),
+        optparse.make_option(
+            '-d',
+            '--output-dir',
+            dest='output_dir',
+            help='directory to put OFX files in [/tmp]',
+        ),
+        optparse.make_option(
+            '-D',
+            '--debug',
+            action='store_true',
+            dest='debug_mode',
+            help='display some debug output [False]',
+        ),
+        optparse.make_option(
+            '-q',
+            '--quiet',
+            action='store_true',
+            dest='quiet_mode',
+            help='display no output at all [False]',
+        ),
+        optparse.make_option(
+            '-l',
+            '--later-than',
+            dest='later_than',
+            help='exports only transactions later than specified date [YYYY-MM-DD]',
+        ),
     ]
     parser.add_options(option_list)
     output_dir = os.path.join('.', datetime.date.today().strftime('%Y-%m-%d'))
-    parser.set_defaults(output_dir=output_dir,
-                        debug_mode=False,
-                        quiet_mode=False)
+    parser.set_defaults(output_dir=output_dir, debug_mode=False, quiet_mode=False)
     return parser.parse_args()
 
 
@@ -46,7 +52,7 @@ def writeFile(account_data, output_dir, user, accountId, formatter):
 
 def getData(user, config, output_dir, formatter, chatter):
     def show_and_tell(pre, function, post='done.'):
-        if (chatter['quiet']):
+        if chatter['quiet']:
             function(chatter)
         else:
             print(pre, end=' ')
@@ -59,7 +65,9 @@ def getData(user, config, output_dir, formatter, chatter):
     # Login to the bank, get data for all accounts.
     creds = config[user]
     bank = aib.aib(creds, chatter)
-    show_and_tell('Logging in as \'%s\' (check your phone for 2FA)...' % user, bank.login)
+    show_and_tell(
+        'Logging in as \'%s\' (check your phone for 2FA)...' % user, bank.login
+    )
     show_and_tell('Scraping account pages for data...', bank.get_data)
     show_and_tell('Logging \'%s\' out...' % user, bank.bye)
 

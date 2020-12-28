@@ -35,8 +35,7 @@ def _csv2account(csv_data, acc):
     operations = []
     for transaction in transactions:
         operation = {}
-        operation['timestamp'] = _to_date(
-            transaction['Posted Transactions Date'])
+        operation['timestamp'] = _to_date(transaction['Posted Transactions Date'])
         # The mysterious story of 'Description' field in CSV exports continues!
         # Now the columns differ between CC and current account, on top of the
         # implemented bugs :(
@@ -86,8 +85,7 @@ class aib(object):
         if self.debug:
             # make a directory for debugging output
             self.debugdir = tempfile.mkdtemp(prefix='aib2ofx_')
-            print('WARNING: putting *sensitive* debug data in %s' %
-                  self.debugdir)
+            print('WARNING: putting *sensitive* debug data in %s' % self.debugdir)
             self.logger = logging.getLogger("mechanize")
             fh = logging.FileHandler(self.debugdir + '/mechanize.log', 'w')
             fm = CleansingFormatter('%(asctime)s\n%(message)s')
@@ -125,8 +123,7 @@ class aib(object):
             requested_digit = int(label.text[-2]) - 1
             pin_digit = logindata['pin'][requested_digit]
             field_name = 'pacDetails.pacDigit' + str(idx + 1)
-            self.logger.debug('Using digit number %d of PIN.',
-                              (requested_digit + 1))
+            self.logger.debug('Using digit number %d of PIN.', (requested_digit + 1))
             brw[field_name] = pin_digit
         # brw['useLimitedAccessOption'] = True
         self.logger.debug('Submitting second login form.')
@@ -160,7 +157,8 @@ class aib(object):
         # parse totals
         main_page = brw.get_current_page()
         for account_line in main_page.find_all(
-                'button', attrs={'class': 'account-button'}):
+            'button', attrs={'class': 'account-button'}
+        ):
             if not account_line.dt:
                 continue
 
@@ -171,9 +169,10 @@ class aib(object):
             account = {}
             account['accountId'] = account_line.dt.get_text(strip=True)
             account['available'] = _to_value(
-                account_line.find('span', {
-                    'class': re.compile('.*a-amount.*')
-                }).get_text(strip=True))
+                account_line.find(
+                    'span', {'class': re.compile('.*a-amount.*')}
+                ).get_text(strip=True)
+            )
             account['currency'] = 'EUR'
             account['bankId'] = 'AIB'
             account['reportDate'] = datetime.datetime.now()
@@ -200,7 +199,9 @@ class aib(object):
             if account not in accounts_on_page.keys():
                 self.logger.debug(
                     'skipping account %s which is absent on historical'
-                    'transactions page', account)
+                    'transactions page',
+                    account,
+                )
                 del self.data[account]
                 continue
 
@@ -214,12 +215,11 @@ class aib(object):
             form = brw.select_form('#historicalTransactionsCommand')
             # Some accounts (eg. freshly opened ones) have export facility
             # disabled. Skip them.
-            if form.form.find(attrs={
-                    'name': 'export'
-            }).get('value') == 'false':
+            if form.form.find(attrs={'name': 'export'}).get('value') == 'false':
                 self.logger.debug(
-                    'skipping account %s which has its "Export" button'
-                    'disabled', account)
+                    'skipping account %s which has its "Export" button' 'disabled',
+                    account,
+                )
                 del self.data[account]
                 continue
             brw.submit_selected()
@@ -227,8 +227,9 @@ class aib(object):
             # confirm the export request
             brw.select_form('#historicalTransactionsCommand')
             response = brw.submit_selected(update_state=False)
-            csv_data = csv.DictReader(response.iter_lines(decode_unicode=True),
-                                      skipinitialspace=True)
+            csv_data = csv.DictReader(
+                response.iter_lines(decode_unicode=True), skipinitialspace=True
+            )
             self.data[account] = _csv2account(csv_data, self.data[account])
 
             # go back to the list of accounts
