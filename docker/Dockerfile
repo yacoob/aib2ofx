@@ -1,3 +1,4 @@
+ARG version=0.70.0a1
 FROM python:3-slim
 WORKDIR /usr/src/aib2ofx
 COPY requirements.txt ./
