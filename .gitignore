@@ -1,5 +1,6 @@
 2???-??-??/
 .venv/
 aib2ofx.egg-info/
+__pycache__/
 build/
 dist/
