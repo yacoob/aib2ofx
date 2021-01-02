@@ -71,3 +71,12 @@ it's not sending the data anywhere, it's not doing anything nasty. I'm
 using it day to day to get data about my AIB accounts into a financial
 program that I use. It should work for you as good as it works for
 me. See the `LICENSE` file for more details.
+
+## Development
+
+aib2ofx works only with python 3.
+
+In order to set up a dev environment clone the repository, get
+[poetry](https://python-poetry.org/docs/#installation)
+and run `poetry install`. This will create a virtualenv with all
+dependencies installed. You can activate it with `poetry shell`.
