@@ -100,24 +100,33 @@ class Aib:
         """Go through the login process."""
         brw = self.browser
 
-        # first stage of login - registration number
+        # Entry page.
         self.logger.debug('Requesting first login page.')
         brw.open('https://onlinebanking.aib.ie/inet/roi/login.htm')
-        brw.select_form(selector='#loginstep1Form')
-        brw['regNumber'] = self.logindata['regNumber']
-        self.logger.debug('Submitting first login form.')
-        brw.submit_selected()
+        brw.select_form(selector='#loginCiamForm')
+        self.logger.debug('Clicking large CONTINUE button on the entry page.')
+        # Note: response code will be 401, as we haven't authorized yet.
+        response = brw.submit_selected()
 
-        # second stage of login - selected pin digits
-        brw.select_form(selector='#loginstep2Form')
-        labels = brw.get_current_page().select('label[for^=digit]')
-        for idx, label in enumerate(labels):
-            requested_digit = int(label.text[-2]) - 1
-            pin_digit = self.logindata['pin'][requested_digit]
-            field_name = 'pacDetails.pacDigit' + str(idx + 1)
-            self.logger.debug('Using digit number %d of PIN.', (requested_digit + 1))
-            brw[field_name] = pin_digit
-        self.logger.debug('Submitting second login form.')
+        # Redirect page.
+        # This redirect is pure javascript, so we need to extract the target URL by hand.
+        p = re.compile("window.location = '([^']+)';")
+        mangled_url = p.search(response.text).group(1)
+        url = (
+            mangled_url.replace('\\/', '/')
+            .replace('\\-', '-')
+            .encode('latin1')
+            .decode('unicode-escape')
+        )
+        # I feel dirty now. >_<
+        self.logger.debug('Bouncing through the interstitial.')
+        response = brw.open(url, headers={'Referer': response.url})
+
+        # Actual login form.
+        brw.select_form()
+        brw['pf.username'] = self.logindata['regNumber']
+        brw['pf.pass'] = self.logindata['pin']
+        self.logger.debug('Submitting login form.')
         brw.submit_selected()
 
         # Wait for 2FA on phone
@@ -135,7 +144,9 @@ class Aib:
 
         # Forward to normal interface.
         brw.select_form('#finalizeForm')
-        brw.submit_selected()
+        response = brw.submit_selected()
+        brw.select_form(nr=0)
+        response = brw.submit_selected()
 
         # mark login as done
         if brw.get_current_page().find(string='My Accounts'):
