@@ -96,6 +96,21 @@ class Aib:
         self.login_done = False
         self.data = {}
 
+    def extract_value(self, varname):
+        """Greps the page content for something that looks like a JS assignment, returns value."""
+        response = str(self.browser.get_current_page())
+        # Luckily the JS code isn't minified.
+        regex = re.compile("%s = '([^']+)';" % varname)
+        mangled_value = regex.search(response).group(1)
+        value = (
+            mangled_value.replace('\\/', '/')
+            .replace('\\-', '-')
+            .encode('latin1')
+            .decode('unicode-escape')
+        )
+        # I feel dirty now. >_<
+        return value
+
     def login(self):
         """Go through the login process."""
         brw = self.browser
@@ -107,18 +122,13 @@ class Aib:
         self.logger.debug('Clicking large CONTINUE button on the entry page.')
         # Note: response code will be 401, as we haven't authorized yet.
         response = brw.submit_selected()
+        assert response.status_code == 401
 
         # Redirect page.
         # This redirect is pure javascript, so we need to extract the target URL by hand.
-        p = re.compile("window.location = '([^']+)';")
-        mangled_url = p.search(response.text).group(1)
-        url = (
-            mangled_url.replace('\\/', '/')
-            .replace('\\-', '-')
-            .encode('latin1')
-            .decode('unicode-escape')
-        )
-        # I feel dirty now. >_<
+        url = self.extract_value('window.location')
+        # We're also saving one value that would be saved in session storage in a modern browser.
+        encoded_post_params = self.extract_value('encodedPostParams')
         self.logger.debug('Bouncing through the interstitial.')
         response = brw.open(url, headers={'Referer': response.url})
 
@@ -145,8 +155,16 @@ class Aib:
         # Forward to normal interface.
         brw.select_form('#finalizeForm')
         response = brw.submit_selected()
+        # This form is empty after page loads, fields are added by JS.
+        form = brw.select_form(nr=0)
+        form.new_control('hidden', 'state', self.extract_value('state.value'))
+        form.new_control('hidden', 'nonce', self.extract_value('encodedNonce'))
+        form.new_control('hidden', 'postParams', encoded_post_params)
+        response = brw.submit_selected()
+        assert response.status_code == 200
         brw.select_form(nr=0)
         response = brw.submit_selected()
+        assert response.status_code == 200
 
         # mark login as done
         if brw.get_current_page().find(string='My Accounts'):
@@ -251,5 +269,5 @@ class Aib:
         brw = self.browser
         brw.select_form('#formLogout')
         brw.submit_selected()
-        if not brw.get_current_page().find(string='Logged Out'):
+        if not brw.get_current_page().find(string='Signing off'):
             raise Exception('Logout failed!')
