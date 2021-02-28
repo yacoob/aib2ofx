@@ -3,6 +3,16 @@
 ...or how to grab transaction data out of AIB's online interface, and format it
 into `OFX` file.
 
+**NOTE:** Last AIB login update (Feb' 2021) made me realise how brittle the
+overall machinery here is. The code that works around Web Storage API use is
+ugly and likely to break. The most likely road forward for this project is to
+decouple it into [ofxstatement](https://github.com/kedder/ofxstatement) plugin
+and (maybe) Selenium-powered CSV acquisition script. The former will be easy,
+the latter will most likely be a nightmare to maintain and install, unless you
+enjoy having your banking details pipe through an arbitrary docker image.
+
+Time will tell.
+
 ## Installation
 
     python3 -mvenv aib2ofx
