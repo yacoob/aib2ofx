@@ -269,5 +269,5 @@ class Aib:
         brw = self.browser
         brw.select_form('#formLogout')
         brw.submit_selected()
-        if not brw.get_current_page().find(string='Signing off'):
+        if not brw.get_current_page().find(string='Signing off...'):
             raise Exception('Logout failed!')
