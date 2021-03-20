@@ -182,7 +182,9 @@ class Aib:
         for account_line in main_page.find_all(
             'button', attrs={'class': 'account-button'}
         ):
-            if not account_line.dt:
+            account_name = account_line.find('div', attrs={'class': 'account-name'})
+            account_amount = account_line.find('span', attrs={'class': 'a-amount'})
+            if not account_name:
                 continue
 
             # Skip pension and saving accounts
@@ -190,12 +192,8 @@ class Aib:
                 continue
 
             account = {}
-            account['accountId'] = account_line.dt.get_text(strip=True)
-            account['available'] = _to_value(
-                account_line.find(
-                    'span', {'class': re.compile('.*a-amount.*')}
-                ).get_text(strip=True)
-            )
+            account['accountId'] = account_name.get_text(strip=True)
+            account['available'] = _to_value(account_amount.get_text(strip=True))
             account['currency'] = 'EUR'
             account['bankId'] = 'AIB'
             account['reportDate'] = datetime.datetime.now()
