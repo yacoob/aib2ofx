@@ -34,23 +34,12 @@ def _csv2account(csv_data, acc):
         acc['balance'] = transactions[-1].get('Balance', 0)
     operations = []
     for transaction in transactions:
+        # FIXME: field names are now different between credit and checking :(
         operation = {}
-        operation['timestamp'] = _to_date(transaction['Posted Transactions Date'])
-        # The mysterious story of 'Description' field in CSV exports continues!
-        # Now the columns differ between CC and current account, on top of the
-        # implemented bugs :(
-        if acc['type'] == 'credit':
-            desc = transaction['Description']
-            if len(desc) > 18 and desc[18] == ' ':
-                desc = desc[:18] + desc[19:]
-        else:
-            descriptions = []
-            for i in [1, 2, 3]:
-                descriptions.append(transaction['Description%s' % i].strip())
-            desc = ' '.join(filter(bool, descriptions))
-        operation['description'] = desc
-        operation['debit'] = _to_value(transaction['Debit Amount'])
-        operation['credit'] = _to_value(transaction['Credit Amount'])
+        operation['timestamp'] = _to_date(transaction['Transaction date/time'])
+        operation['description'] = transaction['Description']
+        operation['debit'] = _to_value(transaction['Paid out'])
+        operation['credit'] = _to_value(transaction['Paid in'])
         operations.append(operation)
     acc['operations'] = operations
     return acc
@@ -207,10 +196,10 @@ class Aib:
         # The latter covers shorter period of time, so we use the former. Both
         # exports differ in the type and amount of fields they export. :(
         self.logger.debug('Switching to transaction listing.')
-        brw.select_form('#historicalstatement_form_id')
+        brw.select_form('#statement_form_id')
         brw.submit_selected()
 
-        brw.select_form('#hForm')
+        brw.select_form('#sForm')
         accounts_on_page = {
             o.text: o.get('value')
             for o in brw.get_current_form().form.find_all('option')
@@ -228,12 +217,12 @@ class Aib:
 
             # get account's page
             self.logger.debug('Requesting transactions for %s.', account)
-            brw.select_form('#hForm')
-            brw['dsAccountIndex'] = accounts_on_page[account]
+            brw.select_form('#sForm')
+            brw['index'] = accounts_on_page[account]
             brw.submit_selected()
 
             # click the export button
-            form = brw.select_form('#historicalTransactionsCommand')
+            form = brw.select_form('#statementCommand')
             # Some accounts (eg. freshly opened ones) have export facility
             # disabled. Skip them.
             if form.form.find(attrs={'name': 'export'}).get('value') == 'false':
@@ -246,7 +235,8 @@ class Aib:
             brw.submit_selected()
 
             # confirm the export request
-            brw.select_form('#historicalTransactionsCommand')
+            # FIXME: the forms are different for normal accounts and for credit cards
+            brw.select_form('#statementCommand', nr=1)
             response = brw.submit_selected(update_state=False)
             csv_data = csv.DictReader(
                 response.iter_lines(decode_unicode=True), skipinitialspace=True
@@ -254,7 +244,7 @@ class Aib:
             self.data[account] = _csv2account(csv_data, self.data[account])
 
             # go back to the list of accounts
-            brw.select_form('#historicaltransactions_form_id')
+            brw.select_form('#statementCommand', nr=0)
             brw.submit_selected()
 
     def getdata(self):
