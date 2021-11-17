@@ -57,8 +57,7 @@ _TRANSACTIONS = """
 
 _CLOSING = {
     'checking': """
-<LEDGERBAL><BALAMT>%(balance)s</BALAMT><DTASOF>%(reportDate)s</DTASOF></LEDGERBAL>
-<AVAILBAL><BALAMT>%(available)s</BALAMT><DTASOF>%(reportDate)s</DTASOF></AVAILBAL>
+<LEDGERBAL><BALAMT>%(available)s</BALAMT><DTASOF>%(reportDate)s</DTASOF></LEDGERBAL>
 </STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>""",
     'credit': """
 <LEDGERBAL><BALAMT>%(available)s</BALAMT><DTASOF>%(reportDate)s</DTASOF></LEDGERBAL>

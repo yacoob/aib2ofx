@@ -31,7 +31,6 @@ def _csv2account(csv_data, acc):
         acc['type'] = 'credit'
     else:
         acc['type'] = 'checking'
-        acc['balance'] = transactions[-1].get('Balance', 0)
     operations = []
     for transaction in transactions:
         operation = {}
@@ -45,6 +44,7 @@ def _csv2account(csv_data, acc):
             operation['debit'] = _to_value(transaction['Paid out'])
             operation['credit'] = _to_value(transaction['Paid in'])
         operations.append(operation)
+    operations.sort(key=lambda o: o['timestamp'])
     acc['operations'] = operations
     return acc
 
