@@ -253,17 +253,16 @@ python-versions = "*"
 
 [[package]]
 name = "mechanicalsoup"
-version = "0.12.0"
+version = "1.1.0"
 description = "A Python library for automating interaction with websites"
 category = "main"
 optional = false
-python-versions = "*"
+python-versions = ">=3.6"
 
 [package.dependencies]
-beautifulsoup4 = ">=4.4"
+beautifulsoup4 = ">=4.7"
 lxml = "*"
-requests = ">=2.0"
-six = ">=1.4"
+requests = ">=2.22.0"
 
 [[package]]
 name = "mypy-extensions"
@@ -516,7 +515,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = '^3.6'
-content-hash = "d60b43ba84fb76485c8e4c3e257bbeef1cf75fcf3d2ca6242709250c885a6ec4"
+content-hash = "192eb58ceda997fcc2e98bd9bc17f6f6898fbae82e9fe3800a3041740f4263d7"
 
 [metadata.files]
 appdirs = [
@@ -681,8 +680,8 @@ mccabe = [
     {file = "mccabe-0.6.1.tar.gz", hash = "sha256:dd8d182285a0fe56bace7f45b5e7d1a6ebcbf524e8f3bd87eb0f125271b8831f"},
 ]
 mechanicalsoup = [
-    {file = "MechanicalSoup-0.12.0-py2.py3-none-any.whl", hash = "sha256:cddd80b0975f4fdafd137a473df4697854e6be3e332a5fa3200e607ee20d5238"},
-    {file = "MechanicalSoup-0.12.0.tar.gz", hash = "sha256:39a60627a97981869251837b8bd082485f2f681df8a3315836ffaa74663627bd"},
+    {file = "MechanicalSoup-1.1.0-py3-none-any.whl", hash = "sha256:0685465c449018f8bce9055b74cf60fbec2ada8391c03aa179586edc6b5a5ee8"},
+    {file = "MechanicalSoup-1.1.0.tar.gz", hash = "sha256:2be8ad9b7571990fce16d0f99a741779921510eb133d3a4dfdeccb2ff2cd00e5"},
 ]
 mypy-extensions = [
     {file = "mypy_extensions-0.4.3-py2.py3-none-any.whl", hash = "sha256:090fedd75945a69ae91ce1303b5824f428daf5a028d2f6ab8a299250a846f15d"},
