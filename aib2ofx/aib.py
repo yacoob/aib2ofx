@@ -91,7 +91,7 @@ class Aib:
 
     def extract_value(self, varname):
         """Greps the page content for something that looks like a JS assignment, returns value."""
-        response = str(self.browser.get_current_page())
+        response = str(self.browser.page())
         # Luckily the JS code isn't minified.
         regex = re.compile("%s = '([^']+)';" % varname)
         mangled_value = regex.search(response).group(1)
@@ -160,7 +160,7 @@ class Aib:
         assert response.status_code == 200
 
         # mark login as done
-        if brw.get_current_page().find(string='My Accounts'):
+        if brw.page.find(string='My Accounts'):
             self.login_done = True
 
     def get_data(self):
@@ -171,7 +171,7 @@ class Aib:
         brw = self.browser
         self.data = {}
         # parse totals
-        main_page = brw.get_current_page()
+        main_page = brw.page
         for account_line in main_page.find_all(
             'button', attrs={'class': 'account-button'}
         ):
@@ -205,8 +205,7 @@ class Aib:
 
         brw.select_form('#sForm')
         accounts_on_page = {
-            o.text: o.get('value')
-            for o in brw.get_current_form().form.find_all('option')
+            o.text: o.get('value') for o in brw.form.form.find_all('option')
         }
 
         for account in list(self.data):
@@ -240,7 +239,7 @@ class Aib:
 
             # Export form has different HTML form names for credit card
             # accounts.
-            if brw.get_current_page().find('form', id='recenttransactions_form_id'):
+            if brw.page.find('form', id='recenttransactions_form_id'):
                 back_form = {'selector': '#recenttransactions_form_id', 'nr': 0}
                 confirm_form = {'selector': '#statementCommand', 'nr': 0}
             else:
@@ -269,5 +268,5 @@ class Aib:
         brw = self.browser
         brw.select_form('#formLogout')
         brw.submit_selected()
-        if not brw.get_current_page().find(string='Logged Out'):
+        if not brw.page.find(string='Logged Out'):
             raise Exception('Logout failed!')
