@@ -234,9 +234,12 @@ class Aib:
                 continue
             brw.submit_selected()
 
-            # confirm the export request
-            # FIXME: the forms are different for normal accounts and for credit cards
-            brw.select_form('#statementCommand', nr=1)
+            # Confirm the export request. The controls here are named
+            # differently for normal accounts and for credit cards.
+            if brw.get_current_page().find('form', id='recenttransactions_form_id'):
+                brw.select_form('#statementCommand', nr=0)
+            else:
+                brw.select_form('#statementCommand', nr=1)
             response = brw.submit_selected(update_state=False)
             csv_data = csv.DictReader(
                 response.iter_lines(decode_unicode=True), skipinitialspace=True
