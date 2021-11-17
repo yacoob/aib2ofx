@@ -34,12 +34,16 @@ def _csv2account(csv_data, acc):
         acc['balance'] = transactions[-1].get('Balance', 0)
     operations = []
     for transaction in transactions:
-        # FIXME: field names are now different between credit and checking :(
         operation = {}
-        operation['timestamp'] = _to_date(transaction['Transaction date/time'])
         operation['description'] = transaction['Description']
-        operation['debit'] = _to_value(transaction['Paid out'])
-        operation['credit'] = _to_value(transaction['Paid in'])
+        if acc['type'] == 'credit':
+            operation['timestamp'] = _to_date(transaction['Posted Transactions Date'])
+            operation['debit'] = _to_value(transaction['Debit Amount'])
+            operation['credit'] = _to_value(transaction['Credit Amount'])
+        else:
+            operation['timestamp'] = _to_date(transaction['Transaction date/time'])
+            operation['debit'] = _to_value(transaction['Paid out'])
+            operation['credit'] = _to_value(transaction['Paid in'])
         operations.append(operation)
     acc['operations'] = operations
     return acc
