@@ -238,12 +238,17 @@ class Aib:
                 continue
             brw.submit_selected()
 
-            # Confirm the export request. The controls here are named
-            # differently for normal accounts and for credit cards.
+            # Export form has different HTML form names for credit card
+            # accounts.
             if brw.get_current_page().find('form', id='recenttransactions_form_id'):
-                brw.select_form('#statementCommand', nr=0)
+                back_form = {'selector': '#recenttransactions_form_id', 'nr': 0}
+                confirm_form = {'selector': '#statementCommand', 'nr': 0}
             else:
-                brw.select_form('#statementCommand', nr=1)
+                back_form = {'selector': '#statementCommand', 'nr': 0}
+                confirm_form = {'selector': '#statementCommand', 'nr': 1}
+
+            # Confirm the export request.
+            brw.select_form(**confirm_form)
             response = brw.submit_selected(update_state=False)
             csv_data = csv.DictReader(
                 response.iter_lines(decode_unicode=True), skipinitialspace=True
@@ -251,7 +256,7 @@ class Aib:
             self.data[account] = _csv2account(csv_data, self.data[account])
 
             # go back to the list of accounts
-            brw.select_form('#statementCommand', nr=0)
+            brw.select_form(**back_form)
             brw.submit_selected()
 
     def getdata(self):
