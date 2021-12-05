@@ -9,6 +9,9 @@
             "type": "python",
             "request": "launch",
             "module": "aib2ofx.cli",
+            "env": {
+                "BROWSER": "wslview"
+            }
         },
         {
             "name": "aib2ofx plus debug output",
@@ -18,6 +21,9 @@
             "args": [
                 "--debug"
             ],
+            "env": {
+                "BROWSER": "wslview"
+            }
         },
     ]
 }
