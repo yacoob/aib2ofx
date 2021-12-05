@@ -202,14 +202,33 @@ class Aib:
 
         # parse transactions
         #
-        # Note: As of January 2017 there are *two* places that produce CSV data
-        # for an account - 'Historical transactions' and 'Recent transactions'.
-        # The latter covers shorter period of time, so we use the former. Both
-        # exports differ in the type and amount of fields they export. :(
-        self.logger.debug('Switching to transaction listing.')
-        brw.select_form('#historicalstatement_form_id')
-        brw.submit_selected()
+        # Note: as of December 2021 there are *two* places that can produce CSV data:
+        # 1. Accounts (top menu) > Transactions > Export (button)
+        # 2. Accounts (top menu) > Transactions > Historical (button) > Export (button)
+        #
+        # They produce different set of CSV fields. Furthermore, second exporter
+        # doesn't include any pending transactions, but offers wider date range.
 
+        # To complicate things further: 'Historical Transactions' page available
+        # upon pressing 'Historical' button used to be available directly from
+        # the menu, but isn't anymore. We want to switch to that page *and then*
+        # enumerate accounts as it saves time on going again through the 'Recent
+        # Transactions' page. Given there's no direct link, we select the first
+        # account, switch to historical transactions and iterate there. This
+        # WILL fail if the first account doesn't have 'Historical' button :(
+        self.logger.debug('Switching to historical transaction listing.')
+        # Click 'Accounts > Transactions' in the top menu. This should bring up
+        # first account's "Recent Transactions" page. This is usually the
+        # current account, which has 'Historical' button.
+        brw.select_form('#statement_form_id')
+        brw.submit_selected()
+        # Click 'Historical' button.
+        brw.select_form('#historicalTransactionsCommand')
+        brw.submit_selected()
+        # We should be on the 'Historical Transactions' page.
+        assert brw.page.find(string='My Accounts') != None
+
+        # Interrogate the account dropdown.
         brw.select_form('#hForm')
         accounts_on_page = {
             o.text: o.get('value') for o in brw.form.form.find_all('option')
