@@ -226,7 +226,7 @@ class Aib:
         brw.select_form('#historicalTransactionsCommand')
         brw.submit_selected()
         # We should be on the 'Historical Transactions' page.
-        assert brw.page.find(string='My Accounts') != None
+        assert brw.page.find(string='Historical Transactions') != None
 
         # Interrogate the account dropdown.
         brw.select_form('#hForm')
