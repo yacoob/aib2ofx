@@ -9,9 +9,7 @@ import sys
 
 import dateutil.parser as dparser
 
-from . import aib
-from . import cfg
-from . import ofx
+from aib2ofx import aib, cfg, ofx
 
 
 def get_options():
@@ -75,11 +73,9 @@ def get_data(user, config, output_dir, later_than, chatter):
     # Login to the bank, get data for all accounts.
     creds = config[user]
     bank = aib.Aib(creds, chatter)
-    show_and_tell(
-        'Logging in as \'%s\' (check your phone for 2FA)...' % user, bank.login
-    )
+    show_and_tell("Logging in as '%s' (check your phone for 2FA)..." % user, bank.login)
     show_and_tell('Scraping account pages for data...', bank.get_data)
-    show_and_tell('Logging \'%s\' out...' % user, bank.bye)
+    show_and_tell("Logging '%s' out..." % user, bank.bye)
 
     # Save each account to separate OFX file.
     for account in bank.getdata().values():
