@@ -1,6 +1,3 @@
-[tool.black]
-skip-string-normalization = true
-
 [tool.poetry]
 name = 'aib2ofx'
 version = '0.73.2'
@@ -15,15 +12,20 @@ python = '>=3.11'
 mechanicalsoup = '^1.3'
 python-dateutil = '^2.9.0'
 
-[tool.poetry.dev-dependencies]
-black = '^24.4.2'
-ipython = '^8.24.0'
-pylint = '^3.2.2'
-rope = '^1.13.0'
+[tool.poetry.group.dev.dependencies]
+ipython = '^8.26.0'
+ipdb = "^0.13.13"
 
 [tool.poetry.scripts]
 aib2ofx = 'aib2ofx.cli:main'
 
 [build-system]
-requires = ['poetry-core>=1.0.0']
+requires = ['poetry-core']
 build-backend = 'poetry.core.masonry.api'
+
+[tool.ruff.format]
+quote-style = 'single'
+
+[tool.pyright]
+venvPath = '.'
+venv = ".venv"
