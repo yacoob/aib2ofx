@@ -83,7 +83,7 @@ class Aib:
             # make a directory for debugging output
             debugdir = tempfile.mkdtemp(prefix='aib2ofx_')
             print('WARNING: putting *sensitive* debug data in %s' % debugdir)
-            self.logger = logging.getLogger("mechanize")
+            self.logger = logging.getLogger('mechanize')
             logfile = logging.FileHandler(debugdir + '/mechanize.log', 'w')
             formatter = CleansingFormatter('%(asctime)s\n%(message)s')
             logfile.setFormatter(formatter)
@@ -95,6 +95,7 @@ class Aib:
         self.browser = mechanicalsoup.StatefulBrowser()
         self.login_done = False
         self.data = {}
+        self.csv = {}
 
     def extract_value(self, varname):
         """Greps the page content for something that looks like a JS assignment, returns value."""
@@ -266,10 +267,15 @@ class Aib:
             # confirm the export request
             brw.select_form('#historicalTransactionsCommand')
             response = brw.submit_selected(update_state=False)
-            csv_data = csv.DictReader(
-                response.iter_lines(decode_unicode=True), skipinitialspace=True
-            )
+            response_lines = [line for line in response.iter_lines(decode_unicode=True)]
+            # filename = account.replace(' ', '-').lower()
+            # filename = f'{datetime.date.today().isoformat()}-{filename}.csv'
+            # fd = open(filename, mode='w')
+            # fd.writelines(f'{line}\n' for line in response_lines)
+            # fd.close()
+            csv_data = csv.DictReader(response_lines, skipinitialspace=True)
             self.data[account] = _csv2account(csv_data, self.data[account])
+            self.data[account]['csv'] = response_lines
 
             # go back to the list of accounts
             brw.select_form('#historicaltransactions_form_id')

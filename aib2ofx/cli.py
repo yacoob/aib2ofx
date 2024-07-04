@@ -46,17 +46,25 @@ def get_options():
         dest='later_than',
         help='exports only transactions later than specified date (YYYY-MM-DD)',
     )
+    parser.add_argument(
+        '-p',
+        '--preserve-csvs',
+        action='store_true',
+        default=False,
+        dest='preserve_csvs',
+        help='Keep downloaded CSV files along produced OFX files',
+    )
     return parser.parse_args()
 
 
-def write_file(output_dir, user, account_id, contents):
+def write_file(output_dir, user, account_id, contents, extension):
     """Save parsed data to a file."""
-    outf = open('%s/%s_%s.ofx' % (output_dir, user, account_id), 'w')
+    outf = open('%s/%s_%s.%s' % (output_dir, user, account_id, extension), 'w')
     outf.write(contents)
     outf.close()
 
 
-def get_data(user, config, output_dir, later_than, chatter):
+def get_data(user, config, output_dir, later_than, chatter, preserve_csvs):
     """Fetch, process and save data for a single user."""
 
     def show_and_tell(pre, function, post='done.'):
@@ -83,7 +91,11 @@ def get_data(user, config, output_dir, later_than, chatter):
             continue
         name = re.sub(cleanup_re, '_', account['accountId']).lower()
         contents = ofx.bankdata_to_ofx(account, later_than)
-        write_file(output_dir, user, name, contents)
+        write_file(output_dir, user, name, contents, 'ofx')
+        # save CSVs too, if requested
+        if preserve_csvs:
+            contents = '\n'.join(account['csv'])
+            write_file(output_dir, user, name, contents, 'csv')
 
 
 def main():
@@ -110,7 +122,9 @@ def main():
 
     # Iterate through accounts, scrape, format and save data.
     for user in config.users():
-        get_data(user, config, options.output_dir, later_than, chatter)
+        get_data(
+            user, config, options.output_dir, later_than, chatter, options.preserve_csvs
+        )
 
 
 if __name__ == '__main__':
