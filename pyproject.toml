@@ -1,6 +1,6 @@
 [tool.poetry]
 name = 'aib2ofx'
-version = '0.73.3'
+version = '0.73.4'
 description = 'Download data from aib.ie in OFX format'
 authors = ['Jakub Turski <yacoob@gmail.com>']
 license = 'MIT'
@@ -8,7 +8,7 @@ readme = 'README.md'
 repository = 'https://github.com/yacoob/aib2ofx'
 
 [tool.poetry.dependencies]
-python = '>=3.11'
+python = '>=3.10'
 mechanicalsoup = '^1.3'
 python-dateutil = '^2.9.0'
 
