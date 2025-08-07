@@ -160,38 +160,29 @@ class Aib:
             raise RuntimeError('Could not extract device ID from onload function')
 
         # Wait for 2FA on phone
-        tfa_done = False
-        while not tfa_done:
+        while True:
             brw.select_form('#form')
             brw['poll.authentication.status'] = 'true'
             brw['selected.device.id'] = device_id
             response = brw.submit_selected(update_state=False)
 
             try:
-                response_data = json.loads(response.content.decode('utf-8'))
-                request_status = response_data.get('request_status')
-                continue_polling = response_data.get('continue_polling')
+                data = json.loads(response.content.decode('utf-8'))
+                status = data.get('request_status')
+                polling = data.get('continue_polling')
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                raise RuntimeError(f'Non-JSON answer received during 2FA exchange:\n{response.content}')
 
-                if request_status == 'PUSH_CONFIRMATION_WAITING' and continue_polling:
-                    # Still waiting for user confirmation - keep polling
-                    pass
-                elif request_status == 'COMPLETED' and not continue_polling:
-                    # User has approved - proceed
-                    tfa_done = True
-                elif (
-                    request_status == 'PUSH_CONFIRMATION_TIMED_OUT'
-                    and not continue_polling
-                ):
-                    # Timeout occurred
-                    raise RuntimeError('2FA authentication timed out')
-                else:
-                    # Fall through to unexpected response handling
-                    raise RuntimeError('unexpected response')
-            except Exception:
-                raise RuntimeError(
-                    'unexpected answer during 2FA auth:\n%s' % response.content
-                )
-            time.sleep(2)
+            if status == 'PUSH_CONFIRMATION_WAITING' and polling:
+                time.sleep(2)
+            elif status == 'COMPLETED' and not polling:
+                break
+            elif status == 'PUSH_CONFIRMATION_TIMED_OUT':
+                raise RuntimeError('2FA authentication timed out')
+            elif status == 'FAILED':
+                raise RuntimeError('2FA authentication failed')
+            else:
+                raise RuntimeError(f'unexpected 2FA response: {status=}, {polling=}')
 
         # 2FA done - forward to normal interface
         brw.select_form('#form')
