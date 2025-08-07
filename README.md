@@ -87,6 +87,6 @@ me. See the `LICENSE` file for more details.
 aib2ofx works only with python 3.
 
 In order to set up a dev environment clone the repository, get
-[poetry](https://python-poetry.org/docs/#installation)
-and run `poetry install`. This will create a virtualenv with all
-dependencies installed. You can activate it with `poetry shell`.
+[uv](https://docs.astral.sh/uv/)
+and run `uv sync`. This will create a virtualenv with all
+dependencies installed.
