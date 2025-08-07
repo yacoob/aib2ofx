@@ -4,7 +4,7 @@ requires-python = ">=3.11"
 
 [[package]]
 name = "aib2ofx"
-version = "0.74.0"
+version = "0.74.1"
 source = { editable = "." }
 dependencies = [
     { name = "mechanicalsoup" },

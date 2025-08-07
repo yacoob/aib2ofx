@@ -1,6 +1,6 @@
 [project]
 name = "aib2ofx"
-version = "0.74.0"
+version = "0.74.1"
 description = "Download data from aib.ie in OFX format"
 authors = [{ name = "Jakub Turski", email = "yacoob@gmail.com" }]
 requires-python = ">=3.11"
