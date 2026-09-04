@@ -1,0 +1,7 @@
+[run]
+branch = true
+include = src/**/*.py
+omit = tests/**/*.py
+
+[report]
+show_missing = true
