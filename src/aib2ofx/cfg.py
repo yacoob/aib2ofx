@@ -4,11 +4,13 @@ import json
 import os
 import re
 
+DEFAULT_CONFIG_FILE = '~/.aib2ofx.json'
+
 
 class Config:
     """Simple dictionary-like config object."""
 
-    def __init__(self, config_filename='~/.aib2ofx.json'):
+    def __init__(self, config_filename=DEFAULT_CONFIG_FILE):
         """Read and parse the config file at config_filename."""
         with open(os.path.expanduser(config_filename)) as filepath:
             config_string = filepath.read(-1)

@@ -54,6 +54,13 @@ def get_options():
         dest='preserve_csvs',
         help='Keep downloaded CSV files along produced OFX files',
     )
+    parser.add_argument(
+        '-c',
+        '--config',
+        default=cfg.DEFAULT_CONFIG_FILE,
+        dest='config_file',
+        help='file with login details [%(default)s]',
+    )
     return parser.parse_args()
 
 
@@ -118,7 +125,7 @@ def main():
         later_than = None
 
     # Read user-provided credentials.
-    config = cfg.Config()
+    config = cfg.Config(options.config_file)
 
     try:
         os.makedirs(options.output_dir)
