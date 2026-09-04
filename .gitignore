@@ -1,4 +1,8 @@
 2???-??-??/
+.coverage
+.direnv/
+.pytest_cache/
+.ruff_cache/
 .venv/
 aib2ofx.egg-info/
 __pycache__/
