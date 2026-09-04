@@ -18,8 +18,8 @@ jobs:
       matrix:
         pyVersion: ["3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
         id: setup-uv
         with:
           enable-cache: true
@@ -40,8 +40,8 @@ jobs:
       matrix:
         pyVersion: ["3.13", "3.14"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
         id: setup-uv
         with:
           enable-cache: true
@@ -58,8 +58,8 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
         id: setup-uv
         with:
           enable-cache: true
