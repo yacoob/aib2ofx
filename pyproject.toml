@@ -18,6 +18,11 @@ Repository = "https://github.com/yacoob/aib2ofx"
 dev = [
     "ipython>=9.4.0,<10",
     "ipdb>=0.13.13,<0.14",
+    "pre-commit>=4.5.1,<5",
+    "pytest>=9.0.2,<10",
+    "pytest-cov>=7.1.0,<8",
+    "ruff>=0.16.3,<0.17",
+    "ty>=0.0.72,<0.1",
 ]
 
 [build-system]
@@ -26,10 +31,3 @@ build-backend = "uv_build"
 
 [project.scripts]
 aib2ofx = "aib2ofx.cli:main"
-
-[tool.ruff.format]
-quote-style = 'single'
-
-[tool.pyright]
-venvPath = '.'
-venv = ".venv"
