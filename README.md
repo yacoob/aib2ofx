@@ -13,16 +13,6 @@ enjoy having your banking details pipe through an arbitrary docker image.
 
 Time will tell.
 
-## Installation
-
-    python3 -mvenv aib2ofx
-    source aib2ofx/bin/activate
-    pip3 install aib2ofx
-
-This will create a virtualenv for `aib2ofx`, fetch its code then install it with
-all dependencies. Once that completes, you'll find `aib2ofx` executable in the
-`bin` directory of this new virtualenv.
-
 ## Usage
 
 Create a `~/.aib2ofx.json` file, with AIB login details.
@@ -81,12 +71,3 @@ it's not sending the data anywhere, it's not doing anything nasty. I'm
 using it day to day to get data about my AIB accounts into a financial
 program that I use. It should work for you as good as it works for
 me. See the `LICENSE` file for more details.
-
-## Development
-
-aib2ofx works only with python 3.
-
-In order to set up a dev environment clone the repository, get
-[uv](https://docs.astral.sh/uv/)
-and run `uv sync`. This will create a virtualenv with all
-dependencies installed.
