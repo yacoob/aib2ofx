@@ -119,7 +119,10 @@ class Aib:
         response = str(self.browser.page)
         # Luckily the JS code isn't minified.
         regex = re.compile(f"{varname} = '([^']+)';")
-        mangled_value = regex.search(response).group(1)
+        match = regex.search(response)
+        if not match:
+            raise RuntimeError(f'could not find {varname} in the page')
+        mangled_value = match.group(1)
         # I feel dirty now. >_<
         return (
             mangled_value.replace('\\/', '/')
