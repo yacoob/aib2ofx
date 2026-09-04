@@ -7,9 +7,14 @@ import logging
 import re
 import tempfile
 import time
+from http import HTTPStatus
 
 import dateutil.parser as dparser
 import mechanicalsoup
+
+# AIB's credit card exports carry a stray space at this offset of the
+# description field.
+_CC_DESCRIPTION_STRAY_SPACE = 18
 
 
 def _to_date(text):
@@ -36,18 +41,26 @@ def _csv2account(csv_data, acc):
     operations = []
     for transaction in transactions:
         operation = {}
-        operation['timestamp'] = _to_date(transaction['Posted Transactions Date'])
+        operation['timestamp'] = _to_date(
+            transaction['Posted Transactions Date']
+        )
         # The mysterious story of 'Description' field in CSV exports continues!
         # Now the columns differ between CC and current account, on top of the
         # implemented bugs :(
         if acc['type'] == 'credit':
             desc = transaction['Description']
-            if len(desc) > 18 and desc[18] == ' ':
-                desc = desc[:18] + desc[19:]
+            if (
+                len(desc) > _CC_DESCRIPTION_STRAY_SPACE
+                and desc[_CC_DESCRIPTION_STRAY_SPACE] == ' '
+            ):
+                desc = (
+                    desc[:_CC_DESCRIPTION_STRAY_SPACE]
+                    + desc[_CC_DESCRIPTION_STRAY_SPACE + 1 :]
+                )
         else:
-            descriptions = []
-            for i in [1, 2, 3]:
-                descriptions.append(transaction['Description%s' % i].strip())
+            descriptions = [
+                transaction[f'Description{i}'].strip() for i in [1, 2, 3]
+            ]
             desc = ' '.join(filter(bool, descriptions))
         operation['description'] = desc
         operation['debit'] = _to_value(transaction['Debit Amount'])
@@ -61,12 +74,14 @@ class CleansingFormatter(logging.Formatter):
     """Logging formatter that scrubs monetary values out."""
 
     def __init__(self, fmt=None, datefmt=None):
+        """Compile the patterns used to scrub sensitive values."""
         self.amount_re = re.compile(r'(?:\d+,)*\d+\.\d+(?: DR)?')
         self.date_re = re.compile(r'\d\d/\d\d/\d\d')
         self.description_re = re.compile('<td>(?!dd/mm/yy).+</td>')
         logging.Formatter.__init__(self, fmt, datefmt)
 
     def format(self, record):
+        """Return the record formatted with sensitive values replaced."""
         tmp = record.msg
         tmp = self.amount_re.sub('X.XX', tmp)
         tmp = self.date_re.sub('dd/mm/yy', tmp)
@@ -79,11 +94,12 @@ class Aib:
     """Automated browser interacting with AIB online interface."""
 
     def __init__(self, logindata, chatter):
+        """Set up logging and the browser used to talk to the bank."""
         self.logindata = logindata
         if chatter['debug']:
             # make a directory for debugging output
             debugdir = tempfile.mkdtemp(prefix='aib2ofx_')
-            print('WARNING: putting *sensitive* debug data in %s' % debugdir)
+            print(f'WARNING: putting *sensitive* debug data in {debugdir}')
             self.logger = logging.getLogger('mechanize')
             logfile = logging.FileHandler(debugdir + '/mechanize.log', 'w')
             formatter = CleansingFormatter('%(asctime)s\n%(message)s')
@@ -102,18 +118,19 @@ class Aib:
         """Greps the page content for something that looks like a JS assignment, returns value."""
         response = str(self.browser.page)
         # Luckily the JS code isn't minified.
-        regex = re.compile("%s = '([^']+)';" % varname)
+        regex = re.compile(f"{varname} = '([^']+)';")
         mangled_value = regex.search(response).group(1)
-        value = (
+        # I feel dirty now. >_<
+        return (
             mangled_value.replace('\\/', '/')
             .replace('\\-', '-')
             .encode('latin1')
             .decode('unicode-escape')
         )
-        # I feel dirty now. >_<
-        return value
 
-    def login(self):
+    # The bank's login is one linear sequence of page interactions, and
+    # there is no test coverage to refactor it against.
+    def login(self):  # noqa: C901, PLR0915
         """Go through the login process."""
         brw = self.browser
 
@@ -124,7 +141,7 @@ class Aib:
         self.logger.debug('Clicking large CONTINUE button on the entry page.')
         # Note: response code will be 401, as we haven't authorized yet.
         response = brw.submit_selected()
-        assert response.status_code == 401
+        assert response.status_code == HTTPStatus.UNAUTHORIZED
 
         # Redirect page.
         # This redirect is pure javascript, so we need to extract the target URL by hand.
@@ -157,7 +174,9 @@ class Aib:
                     break
 
         if not device_id:
-            raise RuntimeError('Could not extract device ID from onload function')
+            raise RuntimeError(
+                'Could not extract device ID from onload function'
+            )
 
         # Wait for 2FA on phone
         while True:
@@ -170,8 +189,10 @@ class Aib:
                 data = json.loads(response.content.decode('utf-8'))
                 status = data.get('request_status')
                 polling = data.get('continue_polling')
-            except (json.JSONDecodeError, UnicodeDecodeError):
-                raise RuntimeError(f'Non-JSON answer received during 2FA exchange:\n{response.content}')
+            except (json.JSONDecodeError, UnicodeDecodeError) as err:
+                raise RuntimeError(
+                    f'Non-JSON answer received during 2FA exchange:\n{response.content}'
+                ) from err
 
             if status == 'PUSH_CONFIRMATION_WAITING' and polling:
                 time.sleep(2)
@@ -182,7 +203,9 @@ class Aib:
             elif status == 'FAILED':
                 raise RuntimeError('2FA authentication failed')
             else:
-                raise RuntimeError(f'unexpected 2FA response: {status=}, {polling=}')
+                raise RuntimeError(
+                    f'unexpected 2FA response: {status=}, {polling=}'
+                )
 
         # 2FA done - forward to normal interface
         brw.select_form('#form')
@@ -195,10 +218,10 @@ class Aib:
         form.new_control('hidden', 'nonce', self.extract_value('encodedNonce'))
         form.new_control('hidden', 'postParams', encoded_post_params)
         response = brw.submit_selected()
-        assert response.status_code == 200
+        assert response.status_code == HTTPStatus.OK
         brw.select_form(nr=0)
         response = brw.submit_selected()
-        assert response.status_code == 200
+        assert response.status_code == HTTPStatus.OK
 
         # mark login as done
         if brw.page.find(string='My Accounts'):
@@ -216,8 +239,12 @@ class Aib:
         for account_line in main_page.find_all(
             'button', attrs={'class': 'account-button'}
         ):
-            account_name = account_line.find('div', attrs={'class': 'account-name'})
-            account_amount = account_line.find('span', attrs={'class': 'a-amount'})
+            account_name = account_line.find(
+                'div', attrs={'class': 'account-name'}
+            )
+            account_amount = account_line.find(
+                'span', attrs={'class': 'a-amount'}
+            )
             if not account_name:
                 continue
 
@@ -227,10 +254,14 @@ class Aib:
 
             account = {}
             account['accountId'] = account_name.get_text(strip=True)
-            account['available'] = _to_value(account_amount.get_text(strip=True))
+            account['available'] = _to_value(
+                account_amount.get_text(strip=True)
+            )
             account['currency'] = 'EUR'
             account['bankId'] = 'AIB'
-            account['reportDate'] = datetime.datetime.now()
+            # OFX date fields carry no timezone, so the bank's local
+            # time is what belongs here.
+            account['reportDate'] = datetime.datetime.now()  # noqa: DTZ005
 
             self.data[account['accountId']] = account
 
@@ -269,7 +300,7 @@ class Aib:
         }
 
         for account in list(self.data):
-            if account not in accounts_on_page.keys():
+            if account not in accounts_on_page:
                 self.logger.debug(
                     'skipping account %s which is absent on historical'
                     'transactions page',
@@ -300,7 +331,7 @@ class Aib:
             # confirm the export request
             brw.select_form('#historicalTransactionsCommand')
             response = brw.submit_selected(update_state=False)
-            response_lines = [line for line in response.iter_lines(decode_unicode=True)]
+            response_lines = list(response.iter_lines(decode_unicode=True))
             # filename = account.replace(' ', '-').lower()
             # filename = f'{datetime.date.today().isoformat()}-{filename}.csv'
             # fd = open(filename, mode='w')
@@ -315,14 +346,14 @@ class Aib:
             brw.submit_selected()
 
     def getdata(self):
-        """Returns data acquired from online interface."""
+        """Return data acquired from online interface."""
         return self.data
 
     def bye(self):
-        """Logs user out of bank's online interface."""
+        """Log the user out of the bank's online interface."""
         self.logger.debug('Logging out.')
         brw = self.browser
         brw.select_form('#formLogout')
         brw.submit_selected()
         if not brw.page.find(string='Logged Out'):
-            raise Exception('Logout failed!')
+            raise RuntimeError('Logout failed!')

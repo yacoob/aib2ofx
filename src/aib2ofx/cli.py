@@ -20,7 +20,7 @@ def get_options():
     parser.add_argument(
         '-d',
         '--output-dir',
-        default=os.path.join('.', datetime.date.today().strftime('%Y-%m-%d')),
+        default=os.path.join('.', datetime.date.today().strftime('%Y-%m-%d')),  # noqa: DTZ011
         dest='output_dir',
         help='directory to put OFX files in [%(default)s]',
     )
@@ -59,12 +59,14 @@ def get_options():
 
 def write_file(output_dir, user, account_id, contents, extension):
     """Save parsed data to a file."""
-    outf = open('%s/%s_%s.%s' % (output_dir, user, account_id, extension), 'w')
-    outf.write(contents)
-    outf.close()
+    path = f'{output_dir}/{user}_{account_id}.{extension}'
+    with open(path, 'w') as outf:
+        outf.write(contents)
 
 
-def get_data(user, config, output_dir, later_than, chatter, preserve_csvs):
+def get_data(  # noqa: PLR0913, PLR0917
+    user, config, output_dir, later_than, chatter, preserve_csvs
+):
     """Fetch, process and save data for a single user."""
 
     def show_and_tell(pre, function, post='done.'):
@@ -81,9 +83,11 @@ def get_data(user, config, output_dir, later_than, chatter, preserve_csvs):
     # Login to the bank, get data for all accounts.
     creds = config[user]
     bank = aib.Aib(creds, chatter)
-    show_and_tell("Logging in as '%s' (check your phone for 2FA)..." % user, bank.login)
+    show_and_tell(
+        f"Logging in as '{user}' (check your phone for 2FA)...", bank.login
+    )
     show_and_tell('Scraping account pages for data...', bank.get_data)
-    show_and_tell("Logging '%s' out..." % user, bank.bye)
+    show_and_tell(f"Logging '{user}' out...", bank.bye)
 
     # Save each account to separate OFX file.
     for account in bank.getdata().values():
@@ -99,7 +103,7 @@ def get_data(user, config, output_dir, later_than, chatter, preserve_csvs):
 
 
 def main():
-    """Main script entry point."""
+    """Run the script."""
     # Parse command line options.
     options = get_options()
     chatter = {
@@ -107,7 +111,9 @@ def main():
         'debug': options.debug_mode,
     }
     if options.later_than:
-        later_than = dparser.parse(options.later_than, dayfirst=False, yearfirst=True)
+        later_than = dparser.parse(
+            options.later_than, dayfirst=False, yearfirst=True
+        )
     else:
         later_than = None
 
@@ -123,7 +129,12 @@ def main():
     # Iterate through accounts, scrape, format and save data.
     for user in config.users():
         get_data(
-            user, config, options.output_dir, later_than, chatter, options.preserve_csvs
+            user,
+            config,
+            options.output_dir,
+            later_than,
+            chatter,
+            options.preserve_csvs,
         )
 
 

@@ -3,7 +3,6 @@
 from hashlib import sha256
 from xml.sax.saxutils import escape
 
-
 _OPENING = """OFXHEADER:100
 DATA:OFXSGML
 VERSION:102
@@ -81,7 +80,7 @@ def _to_date(date):
 
 
 def bankdata_to_ofx(bank_data, later_than=None):
-    """Turns dictionary into OFX document."""
+    """Turn a dictionary into an OFX document."""
     ofx = ''
     data = {}
 
@@ -110,12 +109,12 @@ def bankdata_to_ofx(bank_data, later_than=None):
             trx['amount'] = trx['credit']
         else:
             trx['type'] = 'DEBIT'
-            trx['amount'] = '-%s' % trx['debit']
+            trx['amount'] = f'-{trx["debit"]}'
         trx['timestamp'] = _to_date(trx['timestamp'])
         hsh = sha256(
-            trx['timestamp'].encode("utf-8")
-            + trx['amount'].encode("utf-8")
-            + trx['description'].encode("utf-8")
+            trx['timestamp'].encode('utf-8')
+            + trx['amount'].encode('utf-8')
+            + trx['description'].encode('utf-8')
         )
         digest = hsh.hexdigest()
         # If there's been a transaction with identical hash in the current
@@ -139,5 +138,4 @@ def bankdata_to_ofx(bank_data, later_than=None):
             _CLOSING[data['type']],
         )
     )
-    ofx = ofx % data
-    return ofx
+    return ofx % data
