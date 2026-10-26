@@ -6,7 +6,7 @@
   outputs = {nixpkgs, ...}: let
     system = "x86_64-linux";
     pkgs = nixpkgs.legacyPackages.${system};
-    python = pkgs.python313;
+    python = pkgs.python315;
   in {
     devShells.${system}.default = pkgs.mkShell {
       packages = [
