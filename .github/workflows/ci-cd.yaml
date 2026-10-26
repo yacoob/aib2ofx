@@ -9,6 +9,9 @@ on:
 
 name: CI/CD
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Lint, check format and typing
