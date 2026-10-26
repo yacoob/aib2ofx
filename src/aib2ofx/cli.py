@@ -1,7 +1,7 @@
 """Command line interface of aib2ofx."""
 
 import argparse
-import datetime
+import datetime as dt
 import errno
 import os
 import re
@@ -20,7 +20,7 @@ def get_options():
     parser.add_argument(
         '-d',
         '--output-dir',
-        default=os.path.join('.', datetime.date.today().strftime('%Y-%m-%d')),
+        default=os.path.join('.', dt.date.today().strftime('%Y-%m-%d')),
         dest='output_dir',
         help='directory to put OFX files in [%(default)s]',
     )

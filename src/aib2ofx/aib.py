@@ -1,7 +1,7 @@
 """All functionality related to interactions with AIB online interface."""
 
 import csv
-import datetime
+import datetime as dt
 import json
 import logging
 import re
@@ -264,7 +264,7 @@ class Aib:
             account['bankId'] = 'AIB'
             # OFX date fields carry no timezone, so the bank's local
             # time is what belongs here.
-            account['reportDate'] = datetime.datetime.now()
+            account['reportDate'] = dt.datetime.now()
 
             self.data[account['accountId']] = account
 
@@ -336,7 +336,7 @@ class Aib:
             response = brw.submit_selected(update_state=False)
             response_lines = list(response.iter_lines(decode_unicode=True))
             # filename = account.replace(' ', '-').lower()
-            # filename = f'{datetime.date.today().isoformat()}-{filename}.csv'
+            # filename = f'{dt.date.today().isoformat()}-{filename}.csv'
             # fd = open(filename, mode='w')
             # fd.writelines(f'{line}\n' for line in response_lines)
             # fd.close()
