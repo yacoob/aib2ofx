@@ -264,7 +264,7 @@ class Aib:
             account['bankId'] = 'AIB'
             # OFX date fields carry no timezone, so the bank's local
             # time is what belongs here.
-            account['reportDate'] = datetime.datetime.now()  # noqa: DTZ005
+            account['reportDate'] = datetime.datetime.now()
 
             self.data[account['accountId']] = account
 

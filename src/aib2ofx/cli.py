@@ -20,7 +20,7 @@ def get_options():
     parser.add_argument(
         '-d',
         '--output-dir',
-        default=os.path.join('.', datetime.date.today().strftime('%Y-%m-%d')),  # noqa: DTZ011
+        default=os.path.join('.', datetime.date.today().strftime('%Y-%m-%d')),
         dest='output_dir',
         help='directory to put OFX files in [%(default)s]',
     )
